@@ -1,0 +1,26 @@
+# Основные фреймворки для AI-архитекторов
+langgraph>=0.0.40
+langchain>=0.1.0
+langchain-openai>=0.0.8
+langchain-community>=0.0.20
+
+# Веб-фреймворк и API
+fastapi>=0.104.0
+uvicorn>=0.24.0
+pydantic>=2.5.0
+
+# Векторные базы данных для знаний
+chromadb>=0.4.18
+
+# Обработка данных и ML
+pandas>=2.1.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+
+# Веб-скрапинг и парсинг
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+
+# Развертывание и мониторинг
+python-dotenv>=1.0.0
+structlog>=23.2.0
