@@ -1,71 +1,72 @@
 """
-Упрощенная конфигурация AI SEO Architects без BaseSettings
+Конфигурация системы AI SEO Architects
 """
-from typing import Dict, Any
+
 import os
+from typing import Dict, Any, Optional
 
 
-class AIArchitectsConfig:
-    """Упрощенная конфигурация системы без Pydantic BaseSettings"""
+class AIAgentsConfig:
+    """Конфигурация для AI-агентов"""
     
     def __init__(self):
-        # Базовые настройки
-        self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-        self.EXECUTIVE_MODEL = "gpt-4o"
-        self.MANAGEMENT_MODEL = "gpt-4o-mini" 
-        self.OPERATIONAL_MODEL = "gpt-4o-mini"
+        # Конфигурация поставщика данных
+        self.DATA_PROVIDER_TYPE: str = "static"  # static, mcp, hybrid, mock
+        self.SEO_AI_MODELS_PATH: str = "./seo_ai_models/"
+        self.STATIC_CACHE_ENABLED: bool = True
+        self.STATIC_CACHE_TTL: int = 24  # hours
         
-        # Data Provider настройки
-        self.DATA_PROVIDER_TYPE = "static"
-        self.SEO_AI_MODELS_PATH = "./seo_ai_models/"
-        self.STATIC_CACHE_ENABLED = True
-        self.STATIC_CACHE_TTL = 3600
-        self.STATIC_MOCK_MODE = True
+        # Конфигурация моделей LLM
+        self.OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
+        self.EXECUTIVE_MODEL: str = "gpt-4o"
+        self.MANAGEMENT_MODEL: str = "gpt-4o-mini"
+        self.OPERATIONAL_MODEL: str = "gpt-4o-mini"
         
-        # Системные настройки
-        self.LOG_LEVEL = "INFO"
-        self.DEBUG = False
-        self.ENVIRONMENT = "development"
+        # Конфигурация производительности
+        self.MAX_CONCURRENT_AGENTS: int = 10
+        self.AGENT_TIMEOUT: int = 30
+        self.HEALTH_CHECK_INTERVAL: int = 60
         
-        # Orchestrator настройки
-        self.WORKFLOW_TIMEOUT = 300
-        self.MAX_CONCURRENT_AGENTS = 5
-        
-        # Агенты настройки
-        self.AGENT_DEFAULT_TIMEOUT = 60
-        self.AGENT_RETRY_ATTEMPTS = 2
-        self.AGENT_METRICS_ENABLED = True
-        self.KNOWLEDGE_BASE_PATH = "./knowledge/"
+        # Конфигурация знаний
+        self.KNOWLEDGE_BASE_PATH: str = "./knowledge/"
+        self.VECTOR_STORE_PATH: str = "./data/vector_stores/"
     
-    def get_data_provider_config(self) -> Dict[str, Any]:
-        """Получение конфигурации для Data Provider"""
-        return {
-            "provider_type": self.DATA_PROVIDER_TYPE,
+    def get_data_provider(self):
+        """Создание data provider на основе конфигурации"""
+        # Импортируем здесь чтобы избежать circular dependency
+        from core.data_providers.factory import ProviderFactory
+        
+        config = {
             "seo_ai_models_path": self.SEO_AI_MODELS_PATH,
-            "mock_mode": self.STATIC_MOCK_MODE,
             "cache_enabled": self.STATIC_CACHE_ENABLED,
             "cache_ttl": self.STATIC_CACHE_TTL,
-            "retry_attempts": 3,
-            "retry_delay": 1.0,
-            "timeout": 30.0
+            "mcp_config": {
+                "timeout": self.AGENT_TIMEOUT,
+                "retry_attempts": 3,
+                "fallback_enabled": True
+            },
+            "hybrid_strategy": {
+                "seo_data": "static",
+                "client_data": "static", 
+                "competitive_data": "static"
+            }
         }
+        
+        return ProviderFactory.create_provider(self.DATA_PROVIDER_TYPE, config)
     
-    def get_agent_config(self, agent_level: str) -> Dict[str, Any]:
-        """Получение конфигурации для агента"""
-        model_map = {
+    def get_agent_model(self, agent_level: str) -> str:
+        """Получение модели для агента по уровню"""
+        models = {
             "executive": self.EXECUTIVE_MODEL,
             "management": self.MANAGEMENT_MODEL,
             "operational": self.OPERATIONAL_MODEL
         }
-        
-        return {
-            "model": model_map.get(agent_level, self.OPERATIONAL_MODEL),
-            "timeout": self.AGENT_DEFAULT_TIMEOUT,
-            "retry_attempts": self.AGENT_RETRY_ATTEMPTS,
-            "metrics_enabled": self.AGENT_METRICS_ENABLED,
-            "knowledge_base_path": self.KNOWLEDGE_BASE_PATH
-        }
+        return models.get(agent_level, self.OPERATIONAL_MODEL)
+    
+    def get_knowledge_path(self, agent_level: str, knowledge_file: str) -> str:
+        """Получение пути к базе знаний"""
+        return os.path.join(self.KNOWLEDGE_BASE_PATH, agent_level, knowledge_file)
 
 
-# Создаем глобальный экземпляр конфигурации
-config = AIArchitectsConfig()
+# Глобальный экземпляр конфигурации
+config = AIAgentsConfig()
