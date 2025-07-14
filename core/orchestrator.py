@@ -3,10 +3,11 @@ LangGraph оркестратор для координации AI SEO Architects
 Управляет потоком задач между агентами трех уровней
 """
 from typing import Dict, Any, List
-from langgraph import StateGraph, END
+from langgraph.graph import StateGraph, END
 from core.state_models import SEOArchitectsState
 from core.config import config
 import logging
+import asyncio
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -103,50 +104,137 @@ class SEOArchitectsOrchestrator:
         self.graph = workflow
         return workflow
     
-    def _executive_node(self, state: SEOArchitectsState) -> SEOArchitectsState:
-        """Обработка задач Executive уровня"""
+    async def _executive_node(self, state: SEOArchitectsState) -> SEOArchitectsState:
+        """Обработка задач Executive уровня - БЕЗ ЗАГЛУШЕК"""
         current_agent = state["current_agent"]
         logger.info(f"🎯 Executive узел: {current_agent}")
         
         if current_agent in self.agents:
-            # Здесь будет вызов конкретного агента
+            # РЕАЛЬНЫЙ ВЫЗОВ АГЕНТА
+            agent_instance = self.agents[current_agent]
+            task_data = {
+                "task_type": state.get("task_type", ""),
+                "input_data": state.get("input_data", {}),
+                "client_context": state.get("client_context", {}),
+                "domain": state.get("domain", ""),
+                "client_id": state.get("client_id", "")
+            }
+            
+            try:
+                result = await agent_instance.process_task(task_data)
+                state["processing_results"].append({
+                    "agent": current_agent,
+                    "level": "executive",
+                    "status": "success",
+                    "result": result,
+                    "timestamp": state.get("timestamp", "")
+                })
+                logger.info(f"✅ {current_agent} успешно выполнен")
+            except Exception as e:
+                logger.error(f"❌ Ошибка в {current_agent}: {str(e)}")
+                state["processing_results"].append({
+                    "agent": current_agent,
+                    "level": "executive", 
+                    "status": "error",
+                    "error": str(e)
+                })
+        else:
+            logger.warning(f"⚠️ Агент {current_agent} не зарегистрирован")
             state["processing_results"].append({
                 "agent": current_agent,
                 "level": "executive",
-                "status": "processed",
-                "message": f"Обработано {current_agent}"
+                "status": "not_found",
+                "message": f"Агент {current_agent} не найден в системе"
             })
         
         return state
     
-    def _management_node(self, state: SEOArchitectsState) -> SEOArchitectsState:
-        """Обработка задач Management уровня"""
+    async def _management_node(self, state: SEOArchitectsState) -> SEOArchitectsState:
+        """Обработка задач Management уровня - БЕЗ ЗАГЛУШЕК"""
         current_agent = state["current_agent"]
         logger.info(f"📊 Management узел: {current_agent}")
         
         if current_agent in self.agents:
-            # Здесь будет вызов конкретного агента
+            # РЕАЛЬНЫЙ ВЫЗОВ АГЕНТА
+            agent_instance = self.agents[current_agent]
+            task_data = {
+                "task_type": state.get("task_type", ""),
+                "input_data": state.get("input_data", {}),
+                "client_context": state.get("client_context", {}),
+                "domain": state.get("domain", ""),
+                "client_id": state.get("client_id", "")
+            }
+            
+            try:
+                result = await agent_instance.process_task(task_data)
+                state["processing_results"].append({
+                    "agent": current_agent,
+                    "level": "management",
+                    "status": "success",
+                    "result": result,
+                    "timestamp": state.get("timestamp", "")
+                })
+                logger.info(f"✅ {current_agent} успешно выполнен")
+            except Exception as e:
+                logger.error(f"❌ Ошибка в {current_agent}: {str(e)}")
+                state["processing_results"].append({
+                    "agent": current_agent,
+                    "level": "management",
+                    "status": "error", 
+                    "error": str(e)
+                })
+        else:
+            logger.warning(f"⚠️ Агент {current_agent} не зарегистрирован")
             state["processing_results"].append({
                 "agent": current_agent,
-                "level": "management", 
-                "status": "processed",
-                "message": f"Обработано {current_agent}"
+                "level": "management",
+                "status": "not_found",
+                "message": f"Агент {current_agent} не найден в системе"
             })
         
         return state
     
-    def _operational_node(self, state: SEOArchitectsState) -> SEOArchitectsState:
-        """Обработка задач Operational уровня"""
+    async def _operational_node(self, state: SEOArchitectsState) -> SEOArchitectsState:
+        """Обработка задач Operational уровня - БЕЗ ЗАГЛУШЕК"""
         current_agent = state["current_agent"]
         logger.info(f"⚙️ Operational узел: {current_agent}")
         
         if current_agent in self.agents:
-            # Здесь будет вызов конкретного агента
+            # РЕАЛЬНЫЙ ВЫЗОВ АГЕНТА
+            agent_instance = self.agents[current_agent]
+            task_data = {
+                "task_type": state.get("task_type", ""),
+                "input_data": state.get("input_data", {}),
+                "client_context": state.get("client_context", {}),
+                "domain": state.get("domain", ""),
+                "client_id": state.get("client_id", "")
+            }
+            
+            try:
+                result = await agent_instance.process_task(task_data)
+                state["processing_results"].append({
+                    "agent": current_agent,
+                    "level": "operational",
+                    "status": "success",
+                    "result": result,
+                    "timestamp": state.get("timestamp", "")
+                })
+                logger.info(f"✅ {current_agent} успешно выполнен")
+            except Exception as e:
+                logger.error(f"❌ Ошибка в {current_agent}: {str(e)}")
+                state["processing_results"].append({
+                    "agent": current_agent,
+                    "level": "operational",
+                    "status": "error",
+                    "error": str(e)
+                })
+        else:
+            logger.warning(f"⚠️ Агент {current_agent} не зарегистрирован")
             state["processing_results"].append({
                 "agent": current_agent,
                 "level": "operational",
-                "status": "processed", 
-                "message": f"Обработано {current_agent}"
+                "status": "not_found",
+                "message": f"Агент {current_agent} не найден в системе"
             })
         
         return state
@@ -171,14 +259,16 @@ class SEOArchitectsOrchestrator:
         # Проверяем результаты квалификации
         if state["processing_results"]:
             last_result = state["processing_results"][-1]
-            if "lead_score" in last_result:
-                score = last_result["lead_score"]
-                if score >= 90:
-                    return "hot_lead"
-                elif score >= 70:
-                    return "warm_lead"
-                elif score >= 50:
-                    return "cold_lead"
+            if last_result.get("status") == "success" and "result" in last_result:
+                agent_result = last_result["result"]
+                if "lead_score" in agent_result:
+                    score = agent_result["lead_score"]
+                    if score >= 90:
+                        return "hot_lead"
+                    elif score >= 70:
+                        return "warm_lead"
+                    elif score >= 50:
+                        return "cold_lead"
         
         return "end"
     

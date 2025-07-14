@@ -1,129 +1,413 @@
 """
-Базовый класс для всех AI-архитекторов
-Определяет общий интерфейс и функциональность агентов
+Базовый класс для всех AI-агентов с Data Provider поддержкой
+Обеспечивает единый интерфейс для работы с данными
 """
+
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional, List
+import logging
+import time
 from datetime import datetime
-from core.state_models import SEOArchitectsState
-from core.config import config
-from knowledge.knowledge_manager import knowledge_manager
+
+from core.data_providers.base import BaseDataProvider
+from core.data_providers.factory import ProviderFactory
+from core.interfaces.data_models import SEOData, ClientData, CompetitiveData, TaskData, AgentResult
+
+logger = logging.getLogger(__name__)
+
 
 class BaseAgent(ABC):
-    """Базовый класс для всех AI SEO Architects"""
+    """Базовый класс для всех AI-агентов с Data Provider поддержкой"""
     
     def __init__(
         self,
+        agent_id: str,
         name: str,
-        level: str,
-        specialization: str,
-        model: Optional[str] = None
+        data_provider: Optional[BaseDataProvider] = None,
+        knowledge_base: Optional[str] = None,
+        model_config: Optional[Dict[str, Any]] = None
     ):
         """
-        Инициализация базового агента
+        Инициализация агента
         
         Args:
+            agent_id: Уникальный идентификатор агента
             name: Имя агента
-            level: Уровень агента (executive/management/operational)
-            specialization: Специализация агента
-            model: Модель LLM для агента
+            data_provider: Провайдер данных (если None, создается static по умолчанию)
+            knowledge_base: Путь к базе знаний агента
+            model_config: Конфигурация LLM модели
         """
+        self.agent_id = agent_id
         self.name = name
-        self.level = level  
-        self.specialization = specialization
-        self.model = model or config.AGENT_CONFIGS[level]["model"]
-        self.temperature = config.AGENT_CONFIGS[level]["temperature"]
-        self.max_tokens = config.AGENT_CONFIGS[level]["max_tokens"]
+        self.knowledge_base = knowledge_base
+        self.model_config = model_config or {}
+        self.context = {}
+        self.execution_metrics = {
+            "tasks_completed": 0,
+            "tasks_failed": 0,
+            "total_execution_time": 0.0,
+            "avg_execution_time": 0.0
+        }
         
-        # Загружаем базу знаний агента
-        self.knowledge_store = knowledge_manager.load_agent_knowledge(
-            agent_name=name.lower().replace(" ", "_"),
-            agent_level=level
-        )
+        # Инициализация data provider
+        if data_provider is None:
+            logger.info(f"🔧 Создаем default static provider для {self.agent_id}")
+            self.data_provider = ProviderFactory.create_provider("static")
+        else:
+            self.data_provider = data_provider
         
-        print(f"🤖 Инициализирован агент: {name} ({level} уровень)")
+        logger.info(f"🤖 Инициализирован агент {self.name} ({self.agent_id})")
+        logger.info(f"📊 Использует {type(self.data_provider).__name__}")
     
     @abstractmethod
-    async def process_task(self, state: SEOArchitectsState) -> SEOArchitectsState:
+    async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Абстрактный метод обработки задачи агентом
+        Основная логика обработки задачи агентом
         
         Args:
-            state: Текущее состояние системы
+            task_data: Данные задачи
             
         Returns:
-            SEOArchitectsState: Обновленное состояние
+            Dict с результатами выполнения
         """
         pass
     
-    def search_knowledge(self, query: str, k: int = 3) -> List[str]:
+    # =================================================================
+    # DATA PROVIDER INTEGRATION METHODS
+    # =================================================================
+    
+    async def get_seo_data(self, domain: str, **kwargs) -> SEOData:
         """
-        Поиск релевантных знаний для задачи
+        Получение SEO данных через провайдер
         
         Args:
-            query: Поисковый запрос
-            k: Количество результатов
+            domain: Анализируемый домен
+            **kwargs: Дополнительные параметры
             
         Returns:
-            List[str]: Список релевантных знаний
+            SEOData: Структурированные SEO данные
         """
-        if not self.knowledge_store:
-            return []
+        try:
+            logger.debug(f"📊 {self.agent_id} запрашивает SEO данные для {domain}")
+            seo_data = await self.data_provider.get_seo_data(domain, **kwargs)
+            logger.debug(f"✅ SEO данные получены из {seo_data.source}")
+            return seo_data
+        except Exception as e:
+            logger.error(f"❌ Ошибка получения SEO данных для {domain}: {str(e)}")
+            raise
+    
+    async def get_client_data(self, client_id: str, **kwargs) -> ClientData:
+        """
+        Получение данных клиента через провайдер
+        
+        Args:
+            client_id: ID клиента
+            **kwargs: Дополнительные параметры
             
-        documents = knowledge_manager.search_knowledge(
-            agent_name=self.name.lower().replace(" ", "_"),
-            query=query,
-            k=k
+        Returns:
+            ClientData: Данные клиента
+        """
+        try:
+            logger.debug(f"👤 {self.agent_id} запрашивает данные клиента {client_id}")
+            client_data = await self.data_provider.get_client_data(client_id, **kwargs)
+            logger.debug(f"✅ Данные клиента получены из {client_data.source}")
+            return client_data
+        except Exception as e:
+            logger.error(f"❌ Ошибка получения данных клиента {client_id}: {str(e)}")
+            raise
+    
+    async def get_competitive_data(
+        self, 
+        domain: str, 
+        competitors: List[str], 
+        **kwargs
+    ) -> CompetitiveData:
+        """
+        Получение конкурентных данных через провайдер
+        
+        Args:
+            domain: Основной домен
+            competitors: Список конкурентов
+            **kwargs: Дополнительные параметры
+            
+        Returns:
+            CompetitiveData: Данные конкурентного анализа
+        """
+        try:
+            logger.debug(f"🎯 {self.agent_id} запрашивает конкурентный анализ для {domain}")
+            competitive_data = await self.data_provider.get_competitive_data(
+                domain, competitors, **kwargs
+            )
+            logger.debug(f"✅ Конкурентные данные получены из {competitive_data.source}")
+            return competitive_data
+        except Exception as e:
+            logger.error(f"❌ Ошибка получения конкурентных данных: {str(e)}")
+            raise
+    
+    # =================================================================
+    # EXECUTION METHODS WITH METRICS
+    # =================================================================
+    
+    async def execute_task(self, task_data: Dict[str, Any]) -> AgentResult:
+        """
+        Выполнение задачи с метриками и error handling
+        
+        Args:
+            task_data: Данные задачи
+            
+        Returns:
+            AgentResult: Стандартизированный результат
+        """
+        start_time = time.time()
+        task_id = task_data.get("task_id", f"task_{int(time.time())}")
+        
+        try:
+            logger.info(f"🚀 {self.agent_id} начинает выполнение задачи {task_id}")
+            
+            # Вызываем основную логику агента
+            result_data = await self.process_task(task_data)
+            
+            # Вычисляем время выполнения
+            execution_time = time.time() - start_time
+            
+            # Обновляем метрики
+            self._update_execution_metrics(True, execution_time)
+            
+            # Создаем стандартизированный результат
+            agent_result = AgentResult(
+                agent_id=self.agent_id,
+                task_id=task_id,
+                status="success",
+                result_data=result_data,
+                execution_time=execution_time,
+                confidence_score=result_data.get("confidence_score", 0.8),
+                recommendations=result_data.get("recommendations", []),
+                next_actions=result_data.get("next_actions", []),
+                errors=[],
+                warnings=result_data.get("warnings", []),
+                timestamp=datetime.now()
+            )
+            
+            logger.info(f"✅ {self.agent_id} завершил задачу {task_id} за {execution_time:.2f}s")
+            return agent_result
+            
+        except Exception as e:
+            execution_time = time.time() - start_time
+            self._update_execution_metrics(False, execution_time)
+            
+            error_msg = str(e)
+            logger.error(f"❌ {self.agent_id} ошибка в задаче {task_id}: {error_msg}")
+            
+            # Возвращаем результат с ошибкой
+            agent_result = AgentResult(
+                agent_id=self.agent_id,
+                task_id=task_id,
+                status="error",
+                result_data={},
+                execution_time=execution_time,
+                confidence_score=0.0,
+                recommendations=[],
+                next_actions=["Проверить входные данные", "Повторить задачу"],
+                errors=[error_msg],
+                warnings=[],
+                timestamp=datetime.now()
+            )
+            
+            return agent_result
+    
+    def _update_execution_metrics(self, success: bool, execution_time: float) -> None:
+        """Обновление метрик выполнения агента"""
+        if success:
+            self.execution_metrics["tasks_completed"] += 1
+        else:
+            self.execution_metrics["tasks_failed"] += 1
+        
+        self.execution_metrics["total_execution_time"] += execution_time
+        
+        total_tasks = (
+            self.execution_metrics["tasks_completed"] + 
+            self.execution_metrics["tasks_failed"]
         )
         
-        return [doc.page_content for doc in documents]
+        if total_tasks > 0:
+            self.execution_metrics["avg_execution_time"] = (
+                self.execution_metrics["total_execution_time"] / total_tasks
+            )
     
-    def log_action(self, action: str, details: Dict[str, Any]) -> None:
-        """
-        Логирование действий агента
-        
-        Args:
-            action: Описание действия
-            details: Детали действия
-        """
-        timestamp = datetime.now().isoformat()
-        print(f"📋 [{timestamp}] {self.name}: {action}")
-        if details:
-            for key, value in details.items():
-                print(f"   {key}: {value}")
+    # =================================================================
+    # UTILITY METHODS
+    # =================================================================
     
-    def update_state(
-        self, 
-        state: SEOArchitectsState, 
-        result: Dict[str, Any],
-        next_agent: Optional[str] = None
-    ) -> SEOArchitectsState:
+    def get_provider_info(self) -> Dict[str, Any]:
         """
-        Обновляет состояние системы после обработки
+        Информация об используемом провайдере данных
         
-        Args:
-            state: Текущее состояние
-            result: Результат обработки агентом
-            next_agent: Следующий агент для обработки
-            
         Returns:
-            SEOArchitectsState: Обновленное состояние
+            Dict с информацией о провайдере
         """
-        # Добавляем результат
-        state["processing_results"].append({
-            "agent": self.name,
-            "timestamp": datetime.now().isoformat(),
-            "result": result
-        })
+        try:
+            return {
+                "provider_type": type(self.data_provider).__name__,
+                "provider_metrics": self.data_provider.get_metrics(),
+                "cache_size": len(getattr(self.data_provider, 'cache', {})),
+                "health_status": "unknown"  # Можно добавить async health check
+            }
+        except Exception as e:
+            return {"error": str(e)}
+    
+    def get_agent_metrics(self) -> Dict[str, Any]:
+        """
+        Получение метрик агента
         
-        # Обновляем историю агентов
-        state["previous_agents"].append(state["current_agent"])
+        Returns:
+            Dict с метриками агента
+        """
+        return {
+            "agent_id": self.agent_id,
+            "agent_name": self.name,
+            "execution_metrics": self.execution_metrics.copy(),
+            "provider_info": self.get_provider_info(),
+            "model_config": self.model_config,
+            "knowledge_base": self.knowledge_base,
+            "context_size": len(self.context)
+        }
+    
+    def reset_metrics(self) -> None:
+        """Сброс метрик агента"""
+        self.execution_metrics = {
+            "tasks_completed": 0,
+            "tasks_failed": 0,
+            "total_execution_time": 0.0,
+            "avg_execution_time": 0.0
+        }
+        logger.info(f"📊 Метрики агента {self.agent_id} сброшены")
+    
+    def update_context(self, new_context: Dict[str, Any]) -> None:
+        """
+        Обновление контекста агента
         
-        if next_agent:
-            state["current_agent"] = next_agent
-            state["next_agents"] = [next_agent] if next_agent != "END" else []
+        Args:
+            new_context: Новые данные контекста
+        """
+        self.context.update(new_context)
+        logger.debug(f"📝 Контекст агента {self.agent_id} обновлен")
+    
+    def clear_context(self) -> None:
+        """Очистка контекста агента"""
+        self.context.clear()
+        logger.debug(f"🗑️ Контекст агента {self.agent_id} очищен")
+    
+    async def health_check(self) -> Dict[str, Any]:
+        """
+        Проверка здоровья агента
         
-        # Обновляем время
-        state["updated_at"] = datetime.now().isoformat()
+        Returns:
+            Dict со статусом агента
+        """
+        try:
+            # Проверяем data provider
+            provider_health = await self.data_provider.health_check()
+            
+            # Базовые проверки агента
+            agent_status = {
+                "agent_id": self.agent_id,
+                "status": "healthy",
+                "provider_status": provider_health.get("status", "unknown"),
+                "metrics": self.get_agent_metrics(),
+                "last_check": datetime.now().isoformat()
+            }
+            
+            # Проверяем критические показатели
+            success_rate = 0
+            if self.execution_metrics["tasks_completed"] + self.execution_metrics["tasks_failed"] > 0:
+                success_rate = (
+                    self.execution_metrics["tasks_completed"] / 
+                    (self.execution_metrics["tasks_completed"] + self.execution_metrics["tasks_failed"])
+                )
+            
+            if success_rate < 0.5 and self.execution_metrics["tasks_completed"] > 5:
+                agent_status["status"] = "degraded"
+                agent_status["warning"] = "Низкий процент успешных задач"
+            
+            return agent_status
+            
+        except Exception as e:
+            return {
+                "agent_id": self.agent_id,
+                "status": "unhealthy",
+                "error": str(e),
+                "last_check": datetime.now().isoformat()
+            }
+    
+    def __str__(self) -> str:
+        """Строковое представление агента"""
+        return f"{self.name} ({self.agent_id})"
+    
+    def __repr__(self) -> str:
+        """Детальное представление агента"""
+        return (
+            f"BaseAgent(agent_id='{self.agent_id}', name='{self.name}', "
+            f"provider={type(self.data_provider).__name__})"
+        )
+
+
+# =================================================================
+# CONVENIENCE FUNCTIONS
+# =================================================================
+
+def create_agent_with_static_provider(
+    agent_class,
+    agent_id: str,
+    name: str,
+    **kwargs
+) -> BaseAgent:
+    """
+    Создание агента со static data provider
+    
+    Args:
+        agent_class: Класс агента
+        agent_id: ID агента
+        name: Имя агента
+        **kwargs: Дополнительные параметры
         
-        return state
+    Returns:
+        Экземпляр агента
+    """
+    static_provider = ProviderFactory.create_provider("static")
+    return agent_class(
+        agent_id=agent_id,
+        name=name,
+        data_provider=static_provider,
+        **kwargs
+    )
+
+
+def create_agent_with_provider(
+    agent_class,
+    agent_id: str,
+    name: str,
+    provider_type: str,
+    provider_config: Optional[Dict[str, Any]] = None,
+    **kwargs
+) -> BaseAgent:
+    """
+    Создание агента с указанным провайдером
+    
+    Args:
+        agent_class: Класс агента
+        agent_id: ID агента
+        name: Имя агента
+        provider_type: Тип провайдера
+        provider_config: Конфигурация провайдера
+        **kwargs: Дополнительные параметры
+        
+    Returns:
+        Экземпляр агента
+    """
+    provider = ProviderFactory.create_provider(provider_type, provider_config)
+    return agent_class(
+        agent_id=agent_id,
+        name=name,
+        data_provider=provider,
+        **kwargs
+    )
