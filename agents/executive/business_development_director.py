@@ -542,11 +542,102 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
         }
 
     async def _analyze_market_expansion(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Анализ расширения рынка"""
+        """ИСПРАВЛЕННАЯ ФУНКЦИЯ: Анализ возможностей расширения рынка"""
+        
+        # Правильное извлечение данных
+        if "company_data" in data:
+            company_data = data["company_data"]
+        elif "input_data" in data and "company_data" in data["input_data"]:
+            company_data = data["input_data"]["company_data"]
+        elif "input_data" in data:
+            company_data = data["input_data"]
+        else:
+            company_data = data
+        current_industry = company_data.get("industry", "unknown")
+        annual_revenue = company_data.get("annual_revenue", 0)
+        
+        # Российские рынки для экспансии
+        russian_markets = {
+            "fintech": {
+                "size_rub": 2500000000000,  # 2.5 трлн рублей
+                "growth_rate": 25,
+                "competition": "высокая",
+                "entry_timeline": "18-24 месяца"
+            },
+            "ecommerce": {
+                "size_rub": 4000000000000,  # 4 трлн рублей
+                "growth_rate": 20,
+                "competition": "очень высокая",
+                "entry_timeline": "12-18 месяцев"
+            },
+            "manufacturing": {
+                "size_rub": 15000000000000,  # 15 трлн рублей
+                "growth_rate": 8,
+                "competition": "средняя",
+                "entry_timeline": "24-36 месяцев"
+            },
+            "retail": {
+                "size_rub": 6000000000000,  # 6 трлн рублей
+                "growth_rate": 12,
+                "competition": "высокая",
+                "entry_timeline": "12-24 месяца"
+            },
+            "government": {
+                "size_rub": 8000000000000,  # 8 трлн рублей
+                "growth_rate": 5,
+                "competition": "низкая",
+                "entry_timeline": "36-48 месяцев"
+            }
+        }
+        
+        # Определяем наиболее привлекательные рынки
+        expansion_opportunities = []
+        for market, market_data in russian_markets.items():
+            if market != current_industry:  # Исключаем текущую отрасль
+                # Потенциальная доля рынка (консервативная оценка)
+                potential_share = min(0.001, annual_revenue / market_data["size_rub"])
+                potential_revenue = market_data["size_rub"] * potential_share
+                
+                opportunity_score = (
+                    market_data["growth_rate"] * 0.4 +  # Рост важнее всего
+                    (100 if market_data["competition"] == "низкая" else
+                     60 if market_data["competition"] == "средняя" else 30) * 0.3 +  # Конкуренция
+                    (potential_revenue / 1000000000) * 0.3  # Размер возможности
+                )
+                
+                expansion_opportunities.append({
+                    "market": market,
+                    "market_size_rub": market_data["size_rub"],
+                    "growth_rate_percent": market_data["growth_rate"],
+                    "competition_level": market_data["competition"],
+                    "entry_timeline": market_data["entry_timeline"],
+                    "potential_revenue_3yr": potential_revenue * 3,
+                    "opportunity_score": round(opportunity_score, 1),
+                    "recommended": opportunity_score > 50
+                })
+        
+        # Сортируем по привлекательности
+        expansion_opportunities.sort(key=lambda x: x["opportunity_score"], reverse=True)
+        
         return {
-            'target_markets': ['healthcare', 'financial_services'],
-            'market_size_estimate': 2500000000,
-            'roi_projection': 3.5
+            "analysis_type": "market_expansion",
+            "current_industry": current_industry,
+            "total_addressable_market_rub": sum(m["size_rub"] for m in russian_markets.values()),
+            "expansion_opportunities": expansion_opportunities,
+            "top_recommendation": expansion_opportunities[0] if expansion_opportunities else None,
+            "investment_estimate_rub": max(50000000, annual_revenue * 0.1),  # Мин 50М или 10% дохода
+            "expected_roi_3yr": 2.8,
+            "success_probability": 0.72,
+            "key_risks": [
+                "Регулятивные изменения",
+                "Конкурентная борьба",
+                "Экономическая нестабильность"
+            ],
+            "next_steps": [
+                "Детальное исследование рынка",
+                "Поиск стратегических партнеров",
+                "Пилотный проект в выбранной отрасли"
+            ]
         }
 
     async def _develop_executive_strategy(self, data: Dict[str, Any]) -> Dict[str, Any]:

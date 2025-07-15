@@ -378,45 +378,49 @@ class TaskCoordinationAgent(BaseAgent):
         }
 
     def _analyze_agent_capacity(self, target_agent: str) -> Dict[str, Any]:
-        """Анализ capacity и загрузки целевого агента"""
-        if target_agent not in self.agent_registry:
-            return {'error': f'Agent {target_agent} not found'}
-        
-        agent_info = self.agent_registry[target_agent]
-        
-        # Симулируем текущую загрузку (в реальной системе это бы брались из метрик)
-        current_load = random.randint(0, agent_info['capacity'])
-        load_percentage = (current_load / agent_info['capacity']) * 100
-        
-        # Обновляем загрузку в registry
-        self.agent_registry[target_agent]['current_load'] = current_load
-        
-        # Анализ доступности
-        if load_percentage >= 90:
-            availability_status = 'overloaded'
-            recommendation = 'consider_alternative_or_queue'
-        elif load_percentage >= 75:
-            availability_status = 'high_load'
-            recommendation = 'monitor_closely'
-        elif load_percentage >= 50:
-            availability_status = 'normal_load'
-            recommendation = 'proceed_normally'
-        else:
-            availability_status = 'low_load'
-            recommendation = 'optimal_assignment'
-        
-        return {
-            'agent_id': target_agent,
-            'current_load': current_load,
-            'max_capacity': agent_info['capacity'],
-            'load_percentage': round(load_percentage, 1),
-            'availability_status': availability_status,
-            'recommendation': recommendation,
-            'avg_processing_time': agent_info['avg_processing_time'],
-            'success_rate': agent_info['success_rate'],
-            'queue_position': current_load + 1 if current_load >= agent_info['capacity'] else 0
-        }
-
+        """Детальный анализ capacity и загрузки агента"""
+        try:
+            if target_agent not in self.agent_registry:
+                return {
+                    "error": f"Агент {target_agent} не найден",
+                    "available_agents": list(self.agent_registry.keys()),
+                    "capacity_status": "unknown"
+                }
+            
+            agent_info = self.agent_registry[target_agent]
+            
+            # Симуляция загрузки
+            import random
+            current_load = random.randint(0, agent_info["capacity"])
+            load_percentage = (current_load / agent_info["capacity"]) * 100 if agent_info["capacity"] > 0 else 0
+            
+            # Определяем статус
+            if load_percentage >= 90:
+                status = "перегрузка"
+                recommendation = "перераспределить_задачи"
+            elif load_percentage >= 70:
+                status = "высокая_загрузка"
+                recommendation = "мониторинг"
+            else:
+                status = "нормальная_загрузка"
+                recommendation = "можно_добавить_задач"
+            
+            return {
+                "agent_name": target_agent,
+                "current_load": current_load,
+                "max_capacity": agent_info["capacity"],
+                "load_percentage": round(load_percentage, 1),
+                "capacity_status": status,
+                "recommendation": recommendation,
+                "can_accept_tasks": load_percentage < 85
+            }
+            
+        except Exception as e:
+            return {
+                "error": f"Ошибка анализа capacity: {str(e)}",
+                "agent_name": target_agent,
+                "capacity_status": "error"
+            }
     def _analyze_timing_and_sla(self, task_analysis: Dict, target_agent: str, priority_analysis: Dict) -> Dict[str, Any]:
         """Анализ временных рамок и SLA"""
         agent_info = self.agent_registry.get(target_agent, {})

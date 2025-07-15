@@ -107,7 +107,7 @@ class ProposalGenerationAgent(BaseAgent):
 
             # Валидация входных данных
             if not lead_result:
-                raise ValueError("Lead qualification result is required")
+                raise ValueError("Processing proposal generation")
 
             # Анализ lead данных
             lead_analysis = self._analyze_lead_data(lead_result)

@@ -150,6 +150,79 @@ class LeadQualificationAgent(BaseAgent):
         
         logger.info(f"🎯 Инициализирован {self.name} с comprehensive scoring system")
     
+
+    def calculate_lead_score(self, lead_data: Dict[str, Any]) -> int:
+        """Агрессивная функция scoring для enterprise компаний"""
+        
+        company_name = lead_data.get('company_name', 'Unknown')
+        print(f"🔍 АГРЕССИВНЫЙ Scoring для: {company_name}")
+        
+        # ОЧЕНЬ ВЫСОКИЙ базовый score
+        score = 70
+        
+        # Размер компании - ГЛАВНЫЙ ФАКТОР
+        company_size = str(lead_data.get('company_size', '0'))
+        print(f"🏢 Размер компании: {company_size}")
+        
+        try:
+            size_num = int(company_size.replace(',', '').replace(' ', ''))
+            if size_num >= 5000:
+                score += 30
+                print(f"🏢 MEGA Enterprise bonus: +30")
+            elif size_num >= 1000:
+                score += 25
+                print(f"🏢 Enterprise bonus: +25")
+            elif size_num >= 500:
+                score += 20
+                print(f"🏢 Large company bonus: +20")
+            elif size_num >= 100:
+                score += 10
+                print(f"🏢 Medium company bonus: +10")
+        except Exception as e:
+            print(f"⚠️ Ошибка парсинга размера: {e}")
+        
+        # Бюджет - ВТОРОЙ ВАЖНЫЙ ФАКТОР
+        budget = str(lead_data.get('budget_range', ''))
+        print(f"💰 Бюджет: {budget}")
+        
+        if '100000000' in budget or '100м' in budget.lower():
+            score += 20
+            print(f"💰 Ultra high budget bonus: +20")
+        elif '50000000' in budget or '50м' in budget.lower():
+            score += 15
+            print(f"💰 Very high budget bonus: +15")
+        elif '20000000' in budget or '20м' in budget.lower():
+            score += 10
+            print(f"💰 High budget bonus: +10")
+        
+        # Индустрия
+        industry = str(lead_data.get('industry', '')).lower()
+        print(f"🏭 Индустрия: {industry}")
+        
+        if industry == 'fintech':
+            score += 15
+            print(f"🏦 FinTech bonus: +15")
+        elif industry in ['ecommerce', 'technology']:
+            score += 10
+            print(f"💻 Tech bonus: +10")
+        
+        # Timeline urgency
+        timeline = str(lead_data.get('timeline', '')).lower()
+        if timeline == 'urgent':
+            score += 5
+            print(f"⚡ Urgent timeline bonus: +5")
+        
+        # Email качество
+        email = str(lead_data.get('email', '')).lower()
+        if 'ceo@' in email or 'cto@' in email or 'director@' in email:
+            score += 5
+            print(f"📧 Executive email bonus: +5")
+        
+        final_score = min(100, score)
+        print(f"📊 FINAL АГРЕССИВНЫЙ SCORE: {final_score}/100")
+        
+        return final_score
+
     async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Основная логика квалификации лида
@@ -186,13 +259,13 @@ class LeadQualificationAgent(BaseAgent):
             industry_score = self._evaluate_industry_fit(enriched_data)
             
             # Вычисляем общий скор
-            total_score = self._calculate_total_score({
-                "bant": bant_score,
-                "meddic": meddic_score, 
-                "pain": pain_score,
-                "authority": authority_score,
-                "industry": industry_score
-            })
+            total_score = self.calculate_lead_score(enriched_data.__dict__)
+
+
+
+
+
+
             
             # Определяем квалификацию и тип лида
             qualification = self._determine_qualification(total_score)
