@@ -17,7 +17,7 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
     Business Development Director Agent - Executive уровень
 
     Ответственность:
-    - Управление Enterprise сделками ($25K+ MRR)
+    - Управление Enterprise сделками (2.5M ₽+ MRR)
     - Стратегические партнерства и альянсы
     - Конкурентное позиционирование
     - Стратегическое планирование роста
@@ -25,12 +25,15 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
     """
 
     def __init__(self, data_provider=None, **kwargs):
+        # Устанавливаем модель по умолчанию для Executive уровня, если не передана
+        if 'model_name' not in kwargs:
+            kwargs['model_name'] = "gpt-4o"
+            
         super().__init__(
             agent_id="business_development_director",
             name="Business Development Director Agent",
             data_provider=data_provider,
             knowledge_base="knowledge/executive/business_development_director.md",
-            model_name="gpt-4o",  # Executive уровень использует лучшую модель
             **kwargs
         )
 
@@ -43,16 +46,16 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
         }
 
         # Executive-specific конфигурация
-        self.min_enterprise_deal_size = 25000  # $25K+ MRR minimum
-        self.strategic_partnership_threshold = 100000  # $100K+ for strategic partnerships
-        self.executive_approval_threshold = 50000  # $50K+ requires executive approval
+        self.min_enterprise_deal_size = 2500000  # 2.5M ₽/месяц (Enterprise)  # 2.5M ₽+ MRR minimum
+        self.strategic_partnership_threshold = 10000000  # 10M ₽ (Стратегическое партнерство)  # 10M ₽+ for strategic partnerships
+        self.executive_approval_threshold = 5000000  # 5M ₽ (Требует одобрения руководства)  # 5M ₽+ requires executive approval
 
         # Industry expertise mapping
         self.industry_expertise = {
             'technology': {
                 'weight': 0.9,
                 'specialization': ['saas', 'fintech', 'healthtech', 'edtech'],
-                'average_deal_size': 75000,
+                'average_deal_size': 7500000,  # 7.5M ₽ средняя сделка
                 'sales_cycle_months': 8
             },
             'ecommerce': {
@@ -84,16 +87,16 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
         # Success metrics tracking
         self.kpi_targets = {
             'arr_growth': 0.40,  # 40% annual growth target
-            'average_deal_size': 75000,  # $75K+ target
+            'average_deal_size': 7500000,  # 7.5M ₽ средняя сделка  # 7.5M ₽+ target
             'enterprise_win_rate': 0.35,  # 35% win rate for enterprise
             'partnership_revenue_mix': 0.20,  # 20% from partnerships
-            'customer_ltv': 500000,  # $500K+ LTV target
+            'customer_ltv': 500000,  # ₽500K+ LTV target
             'sales_cycle_months': 8  # 8 month average cycle
         }
 
         print(f"🎯 {self.name} инициализирован:")
-        print(f"  💰 Min Enterprise Deal: ${self.min_enterprise_deal_size:,}/month")
-        print(f"  🤝 Strategic Partnership Threshold: ${self.strategic_partnership_threshold:,}")
+        print(f"💰 Мин Enterprise сделка: {self.min_enterprise_deal_size:,} ₽/месяц")
+        print(f"  🤝 Порог партнерства: {self.strategic_partnership_threshold:,} ₽")
         print(f"  🏢 Industry Expertise: {len(self.industry_expertise)} verticals")
         print(f"  📊 Target ARR Growth: {self.kpi_targets['arr_growth']*100}%")
 
@@ -112,7 +115,7 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
 
             # Роутинг по типам задач
             if task_type == 'enterprise_assessment':
-                result = await self._assess_enterprise_opportunity(input_data)
+                result = await self._assess_enterprise_opportunity(task_data)  # Исправлено: передаем весь task_data
             elif task_type == 'strategic_partnership':
                 result = await self._evaluate_partnership_opportunity(input_data)
             elif task_type == 'competitive_analysis':
@@ -174,10 +177,22 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
         """
         Оценка Enterprise возможности с использованием executive expertise
         """
-        # Извлекаем данные о компании
-        company_data = data.get('company_data', {})
+        # Умное извлечение данных (поддерживает input_data и company_data)
+        if 'input_data' in data:
+            # Данные пришли через process_task (input_data формат)
+            company_data = data.get('input_data', {})
+        else:
+            # Данные пришли через прямой вызов (company_data формат)
+            company_data = data.get('company_data', {})
+            
         lead_analysis = data.get('lead_analysis', {})
         proposal_data = data.get('proposal_data', {})
+        
+        print(f"🔍 BD Director получил данные:")
+        print(f"   Company: {company_data.get('company_name', 'N/A')}")
+        print(f"   Revenue: {company_data.get('annual_revenue', 0):,} ₽")
+        print(f"   SEO Spend: {company_data.get('current_seo_spend', 0):,} ₽")
+        print(f"   Source: {'input_data' if 'input_data' in data else 'company_data'}")
 
         # Enterprise квалификация
         enterprise_score = self._calculate_enterprise_score(company_data, lead_analysis)
@@ -246,9 +261,9 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
             base_score += 5
 
         # Размер компании (больше возможностей)
-        if annual_revenue >= 100000000:  # $100M+
+        if annual_revenue >= 100000000:  # ₽100M+
             base_score += 25
-        elif annual_revenue >= 50000000:   # $50M+
+        elif annual_revenue >= 50000000:   # ₽50M+
             base_score += 15
         else:
             base_score += 5
@@ -269,10 +284,10 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
         return {
             'partnership_score': min(final_score, 100),
             'partnership_types': partnership_types,
-            'referral_potential': len(existing_partnerships) * 5000,  # $5K per partner
+            'referral_potential': len(existing_partnerships) * 5000,  # ₽5K per partner
             'integration_opportunities': len(tech_stack),
             'strategic_fit': 'high' if final_score >= 70 else 'medium' if final_score >= 40 else 'low',
-            'estimated_revenue_potential': final_score * 1000  # $1K per score point
+            'estimated_revenue_potential': final_score * 1000  # ₽1K per score point
         }
 
     def _calculate_enterprise_score(self, company_data: Dict, lead_analysis: Dict) -> int:
@@ -283,13 +298,13 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
 
         # 1. Deal Size Assessment (30% веса)
         annual_revenue = company_data.get('annual_revenue', 0)
-        if annual_revenue >= 1000000000:  # $1B+ revenue
+        if annual_revenue >= 1000000000:  # ₽1B+ revenue
             score += 30
-        elif annual_revenue >= 500000000:  # $500M+ revenue
+        elif annual_revenue >= 500000000:  # ₽500M+ revenue
             score += 25
-        elif annual_revenue >= 100000000:  # $100M+ revenue
+        elif annual_revenue >= 100000000:  # ₽100M+ revenue
             score += 20
-        elif annual_revenue >= 50000000:   # $50M+ revenue
+        elif annual_revenue >= 50000000:   # ₽50M+ revenue
             score += 15
         else:
             score += min(annual_revenue / 50000000 * 15, 15)
@@ -335,13 +350,13 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
         annual_revenue = company_data.get('annual_revenue', 0)
 
         if enterprise_score >= 90 and annual_revenue >= 1000000000:
-            return 'tier_1_enterprise'  # $100K+ MRR potential
+            return 'tier_1_enterprise'  # 10M ₽+ MRR potential
         elif enterprise_score >= 70 and annual_revenue >= 100000000:
-            return 'tier_2_enterprise'  # $50-100K MRR
+            return 'tier_2_enterprise'  # ₽50-100K MRR
         elif enterprise_score >= 50 and annual_revenue >= 50000000:
-            return 'tier_3_enterprise'  # $25-50K MRR
+            return 'tier_3_enterprise'  # ₽25-50K MRR
         elif enterprise_score >= 30:
-            return 'future_potential'   # $10-25K MRR
+            return 'future_potential'   # ₽10-25K MRR
         else:
             return 'not_qualified'
 

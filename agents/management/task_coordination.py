@@ -25,12 +25,15 @@ class TaskCoordinationAgent(BaseAgent):
     """
 
     def __init__(self, data_provider=None, **kwargs):
+        # Устанавливаем модель по умолчанию для Management уровня, если не передана
+        if 'model_name' not in kwargs:
+            kwargs['model_name'] = "gpt-4o-mini"  # Management уровень использует gpt-4o-mini
+            
         super().__init__(
             agent_id="task_coordination",
             name="Task Coordination Agent",
             data_provider=data_provider,
             knowledge_base="knowledge/management/task_coordination.md",
-            model_name="gpt-4o",  # Management уровень использует лучшую модель
             **kwargs
         )
 
