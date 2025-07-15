@@ -1,21 +1,24 @@
-"""
-Стандартизированные модели данных для AI SEO Architects
-"""
-
+""" Стандартизированные модели данных для AI SEO Architects """
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel, Field
 from enum import Enum
 
+class DataSource(str, Enum):
+    """Источники данных"""
+    STATIC = "static"
+    SEO_AI_MODELS = "seo_ai_models"
+    MCP = "mcp"
+    HYBRID = "hybrid"
+    MOCK = "mock"
 
 class LeadClassification(str, Enum):
     """Классификация лидов"""
-    HOT = "hot"              # 80-100 баллов
-    WARM = "warm"            # 60-79 баллов  
-    COLD = "cold"            # 40-59 баллов
-    MQL = "mql"              # 20-39 баллов
+    HOT = "hot"  # 80-100 баллов
+    WARM = "warm"  # 60-79 баллов
+    COLD = "cold"  # 40-59 баллов
+    MQL = "mql"  # 20-39 баллов
     UNQUALIFIED = "unqualified"  # 0-19 баллов
-
 
 class LeadInput(BaseModel):
     """Входные данные для квалификации лида"""
@@ -30,7 +33,6 @@ class LeadInput(BaseModel):
     contact_role: Optional[str] = None
     lead_source: Optional[str] = None
 
-
 class LeadOutput(BaseModel):
     """Результат квалификации лида"""
     lead_score: int = Field(ge=0, le=100)
@@ -40,10 +42,9 @@ class LeadOutput(BaseModel):
     recommended_actions: List[str]
     confidence: float = Field(ge=0, le=1)
     reasoning: Optional[str] = None
-    
+
     class Config:
         use_enum_values = True
-
 
 class SEOData(BaseModel):
     """Данные SEO анализа"""
@@ -63,7 +64,6 @@ class SEOData(BaseModel):
     data_freshness: timedelta = Field(default_factory=lambda: timedelta(hours=1))
     api_cost: float = Field(ge=0, default=0.0)
 
-
 class ClientData(BaseModel):
     """Данные клиента"""
     client_id: str
@@ -79,7 +79,6 @@ class ClientData(BaseModel):
     conversion_probability: float = Field(ge=0, le=1, default=0.5)
     last_updated: datetime = Field(default_factory=datetime.now)
     data_quality_score: float = Field(ge=0, le=1, default=0.8)
-
 
 class CompetitiveData(BaseModel):
     """Данные конкурентного анализа"""
