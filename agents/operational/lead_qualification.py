@@ -866,7 +866,8 @@ class LeadQualificationAgent(BaseAgent):
                 else:
                     return "Small (1-50 employees)"
         except:
-            pass
+            print(f"Ошибка при анализе размера компании: {lead_data.company_name}")
+            return "Unknown size"
         
         return None
     
