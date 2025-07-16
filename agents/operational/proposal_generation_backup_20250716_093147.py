@@ -40,10 +40,10 @@ class ProposalGenerationAgent(BaseAgent):
         # Конфигурация pricing стратегий
         self.pricing_config = {
             "base_rates": {
-                "seo_audit": {"smb": 250000, "mid_market": 500000, "enterprise": 1200000},
-                "monthly_retainer": {"smb": 350000, "mid_market": 850000, "enterprise": 2500000},
-                "content_strategy": {"smb": 150000, "mid_market": 350000, "enterprise": 800000},
-                "link_building": {"smb": 200000, "mid_market": 450000, "enterprise": 1500000}
+                "seo_audit": {"smb": 2500, "mid_market": 5000, "enterprise": 12000},
+                "monthly_retainer": {"smb": 3500, "mid_market": 8500, "enterprise": 25000},
+                "content_strategy": {"smb": 1500, "mid_market": 3500, "enterprise": 8000},
+                "link_building": {"smb": 2000, "mid_market": 4500, "enterprise": 15000}
             },
             "industry_multipliers": {
                 "e-commerce": 1.2,
@@ -150,7 +150,7 @@ class ProposalGenerationAgent(BaseAgent):
                     "processing_notes": [
                         f"Lead score: {lead_result.get('final_score', 'N/A')}",
                         f"Industry: {lead_analysis.get('industry', 'Unknown')}",
-                        f"Budget range: {pricing_proposal.get('total_range', 'N/A')}"
+                        f"Budget range: ${pricing_proposal.get('total_range', 'N/A')}"
                     ],
                     "recommendations": [
                         "Review pricing with sales team if score < 60",
@@ -528,7 +528,7 @@ class ProposalGenerationAgent(BaseAgent):
         average_deal_value = {
             "smb": {"e-commerce": 150, "saas": 500, "b2b_services": 2500, "healthcare": 800, "real_estate": 5000, "default": 800},
             "mid_market": {"e-commerce": 400, "saas": 1500, "b2b_services": 8000, "healthcare": 2000, "real_estate": 15000, "default": 2500},
-            "enterprise": {"e-commerce": 800, "saas": 500000, "b2b_services": 2500000, "healthcare": 500000, "real_estate": 5000000, "default": 800000}
+            "enterprise": {"e-commerce": 800, "saas": 5000, "b2b_services": 25000, "healthcare": 5000, "real_estate": 50000, "default": 8000}
         }
 
         # Получаем базовые параметры
@@ -573,9 +573,9 @@ class ProposalGenerationAgent(BaseAgent):
         return {
             "assumptions": {
                 "conversion_rate": f"{conversion_rate * 100:.1f}%",
-                "average_deal_value": f"{avg_deal:,}",
+                "average_deal_value": f"${avg_deal:,}",
                 "opportunity_score": f"{opportunity_score:.1f}",
-                "annual_investment": f"{annual_investment:,}"
+                "annual_investment": f"${annual_investment:,}"
             },
             "projections": projections,
             "summary": {
@@ -682,7 +682,7 @@ class ProposalGenerationAgent(BaseAgent):
 {chr(10).join([f"- {service}" for service in service_names])}
 
 **Инвестиции:** {roi_projections["assumptions"]["annual_investment"]}
-**Ожидаемая дополнительная выручка:** {roi_projections["projections"]["12_months"]["annual_revenue"]:,} ₽ ₽ в год
+**Ожидаемая дополнительная выручка:** {roi_projections["projections"]["12_months"]["annual_revenue"]:,} руб. в год
 """
 
     def _create_situation_analysis(self, lead_analysis: Dict[str, Any]) -> str:
@@ -699,7 +699,7 @@ class ProposalGenerationAgent(BaseAgent):
 
 ### Текущее состояние SEO
 - Уровень SEO зрелости: {seo_analysis["maturity_level"]}
-- Текущий SEO бюджет: {seo_analysis["current_budget"]:,} ₽ ₽/месяц
+- Текущий SEO бюджет: {seo_analysis["current_budget"]:,} руб./месяц
 - Оценка потенциала: {seo_analysis["opportunity_score"]:.1f}/1.0
 
 ### Выявленные проблемы
@@ -776,9 +776,9 @@ class ProposalGenerationAgent(BaseAgent):
 ### {package["name"]}{discount_text}
 {package["description"]}
 
-- Первоначальная стоимость: {package["one_time_price"]:,} ₽ ₽
-- Ежемесячная стоимость: {package["monthly_price"]:,} ₽ ₽
-- Годовая стоимость: {(package["one_time_price"] + package["monthly_price"] * 12):,} ₽ ₽
+- Первоначальная стоимость: {package["one_time_price"]:,} руб.
+- Ежемесячная стоимость: {package["monthly_price"]:,} руб.
+- Годовая стоимость: {(package["one_time_price"] + package["monthly_price"] * 12):,} руб.
 
 """
 
@@ -803,15 +803,15 @@ class ProposalGenerationAgent(BaseAgent):
 
 ### Через 6 месяцев
 - Прирост трафика: {proj_6m["traffic_growth"]}
-- Дополнительный трафик: {proj_6m["additional_monthly_traffic"]:,} ₽ посетителей/месяц
+- Дополнительный трафик: {proj_6m["additional_monthly_traffic"]:,} посетителей/месяц
 - Конверсии: {proj_6m["monthly_conversions"]} заявок/месяц
-- Дополнительная выручка: {proj_6m["monthly_revenue"]:,} ₽ ₽/месяц
+- Дополнительная выручка: {proj_6m["monthly_revenue"]:,} руб./месяц
 
 ### Через 12 месяцев
 - Прирост трафика: {proj_12m["traffic_growth"]}
-- Дополнительный трафик: {proj_12m["additional_monthly_traffic"]:,} ₽ посетителей/месяц
+- Дополнительный трафик: {proj_12m["additional_monthly_traffic"]:,} посетителей/месяц
 - Конверсии: {proj_12m["monthly_conversions"]} заявок/месяц
-- Дополнительная выручка: {proj_12m["monthly_revenue"]:,} ₽ ₽/месяц
+- Дополнительная выручка: {proj_12m["monthly_revenue"]:,} руб./месяц
 - **ROI: {proj_12m["roi_percentage"]}**
 
 ### Ключевые метрики успеха
@@ -837,9 +837,9 @@ class ProposalGenerationAgent(BaseAgent):
             ],
             "saas": [
                 {
-                    "title": "SaaS платформа: увеличение MRR на 4,700,000 ₽ через SEO",
+                    "title": "SaaS платформа: увеличение MRR на $47,000 через SEO",
                     "industry": "SaaS",
-                    "results": "Рост квалифицированного трафика на 280%, +4.7М ₽ MRR",
+                    "results": "Рост квалифицированного трафика на 280%, +$47K MRR",
                     "timeline": "12 месяцев",
                     "key_activities": ["Content marketing", "Technical SEO", "Link building"]
                 }

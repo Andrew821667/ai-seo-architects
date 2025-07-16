@@ -187,13 +187,13 @@ class LeadQualificationAgent(BaseAgent):
         
         if '100000000' in budget or '100м' in budget.lower():
             score += 20
-            print(f"💰 Ultra high budget bonus (100М ₽+ ₽): +20")
+            print(f"💰 Ultra high budget bonus: +20")
         elif '50000000' in budget or '50м' in budget.lower():
             score += 15
-            print(f"💰 Very high budget bonus (50М ₽+ ₽): +15")
+            print(f"💰 Very high budget bonus: +15")
         elif '20000000' in budget or '20м' in budget.lower():
             score += 10
-            print(f"💰 High budget bonus (20М ₽+ ₽): +10")
+            print(f"💰 High budget bonus: +10")
         
         # Индустрия
         industry = str(lead_data.get('industry', '')).lower()
@@ -202,7 +202,7 @@ class LeadQualificationAgent(BaseAgent):
         if industry == 'fintech':
             score += 15
             print(f"🏦 FinTech bonus: +15")
-        elif industry in ['ecommerce', 'fintech']:
+        elif industry in ['ecommerce', 'technology']:
             score += 10
             print(f"💻 Tech bonus: +10")
         
@@ -552,9 +552,9 @@ class LeadQualificationAgent(BaseAgent):
         # Анализируем по бюджету
         if lead_data.budget_range:
             budget = lead_data.budget_range.lower()
-            if any(indicator in budget for indicator in ['5000000+', '10000000+', '5м+', '10м+']):
+            if any(indicator in budget for indicator in ['50000+', '100000+', '50k+', '100k+']):
                 return "Enterprise"
-            elif any(indicator in budget for indicator in ['1000000-5000000', '1м-5м', '1500000-3000000']):
+            elif any(indicator in budget for indicator in ['10000-50000', '10k-50k', '15000-30000']):
                 return "Mid-market"
             else:
                 return "SMB"
@@ -594,7 +594,7 @@ class LeadQualificationAgent(BaseAgent):
         if lead_data.referral_source:
             strengths.append("Пришел по рекомендации")
         
-        if lead_data.budget_range and any(indicator in lead_data.budget_range for indicator in ['2500000+', '5000000+']):
+        if lead_data.budget_range and any(indicator in lead_data.budget_range for indicator in ['25000+', '50000+']):
             strengths.append("Достаточный бюджет")
         
         if lead_data.contact_role and any(role in lead_data.contact_role.lower() for role in ['ceo', 'founder', 'cto']):
@@ -711,12 +711,12 @@ class LeadQualificationAgent(BaseAgent):
         # Корректируем на основе бюджета
         if lead_data.budget_range:
             budget = lead_data.budget_range.lower()
-            if '10000000+' in budget or '10м+' in budget:
-                base_value = max(base_value, 10000000)
-            elif '5000000+' in budget or '5м+' in budget:
-                base_value = max(base_value, 5000000)
-            elif '2500000+' in budget or '2.5м+' in budget:
-                base_value = max(base_value, 2500000)
+            if '100000+' in budget or '100k+' in budget:
+                base_value = max(base_value, 100000)
+            elif '50000+' in budget or '50k+' in budget:
+                base_value = max(base_value, 50000)
+            elif '25000+' in budget or '25k+' in budget:
+                base_value = max(base_value, 25000)
         
         # Корректируем на основе отрасли
         if lead_data.industry:
@@ -772,9 +772,9 @@ class LeadQualificationAgent(BaseAgent):
         """Скоринг бюджета"""
         budget = budget_range.lower()
         
-        if any(indicator in budget for indicator in ['10000000+', '10м+', '6 figures']):
+        if any(indicator in budget for indicator in ['100000+', '100k+', '6 figures']):
             return 25
-        elif any(indicator in budget for indicator in ['5000000+', '5м+', '25000-50000']):
+        elif any(indicator in budget for indicator in ['50000+', '50k+', '25000-50000']):
             return 20
         elif any(indicator in budget for indicator in ['15000-25000', '10000-25000']):
             return 15
@@ -841,7 +841,7 @@ class LeadQualificationAgent(BaseAgent):
         
         if any(keyword in content_text for keyword in ['ecommerce', 'shop', 'buy', 'cart', 'product']):
             return "E-commerce"
-        elif any(keyword in content_text for keyword in ['saas', 'saas', 'platform', 'api']):
+        elif any(keyword in content_text for keyword in ['software', 'saas', 'platform', 'api']):
             return "SaaS"
         elif any(keyword in content_text for keyword in ['consulting', 'services', 'business']):
             return "B2B Services"
