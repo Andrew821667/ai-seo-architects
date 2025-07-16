@@ -56,8 +56,8 @@ class TaskCoordinationAgent(BaseAgent):
                 'specialization': ['lead_analysis', 'bant_scoring', 'qualification'],
                 'capacity': 10,  # максимум задач одновременно
                 'current_load': 0,
-                'avg_processing_time': 300  # 5 минут (МСК),  # 5 минут
-                'sla_hours': 2  # 2 часа рабочего времени МСК,
+                'avg_processing_time': 300,  # 5 минут
+                'sla_hours': 2,
                 'success_rate': 0.92
             },
             'proposal_generation': {
@@ -66,18 +66,18 @@ class TaskCoordinationAgent(BaseAgent):
                 'specialization': ['proposals', 'pricing', 'service_packages'],
                 'capacity': 8,
                 'current_load': 0,
-                'avg_processing_time': 600  # 10 минут (МСК),  # 10 минут
+                'avg_processing_time': 600,  # 10 минут
                 'sla_hours': 4,
                 'success_rate': 0.89
             },
             'business_development_director': {
                 'agent_id': 'business_development_director',
                 'level': 'executive',
-                'specialization': ['enterprise_deals', 'strategic_partnerships', 'executive_decisions', 'fintech_priority', 'government_contracts'],
+                'specialization': ['enterprise_deals', 'strategic_partnerships', 'executive_decisions'],
                 'capacity': 5,
                 'current_load': 0,
                 'avg_processing_time': 1800,  # 30 минут
-                'sla_hours': 2  # 2 часа рабочего времени МСК4,
+                'sla_hours': 24,
                 'success_rate': 0.96
             }
         }
@@ -101,20 +101,20 @@ class TaskCoordinationAgent(BaseAgent):
             'executive_strategy': 'business_development_director'
         }
 
-        # Система приоритетов (адаптировано для российского рынка) (1000-балльная шкала)
+        # Система приоритетов (1000-балльная шкала)
         self.priority_weights = {
             'business_criticality': 0.35,  # 35%
             'time_constraints': 0.25,      # 25%
-            'client_value': 0.20, 'russian_market_priority': 0.15,          # 20%
+            'client_value': 0.20,          # 20%
             'task_complexity': 0.10,       # 10%
             'dependencies': 0.10           # 10%
         }
 
         # SLA матрица по типам задач
         self.sla_matrix = {
-            'critical': {'hours': 1  # Учет российских рабочих часов, 'priority_boost': 300},
-            'high': {'hours': 4  # Стандартные российские SLA, 'priority_boost': 200},
-            'medium': {'hours': 24  # Российские executive решения, 'priority_boost': 100},
+            'critical': {'hours': 1, 'priority_boost': 300},
+            'high': {'hours': 4, 'priority_boost': 200},
+            'medium': {'hours': 24, 'priority_boost': 100},
             'low': {'hours': 72, 'priority_boost': 0}
         }
 
@@ -438,7 +438,7 @@ class TaskCoordinationAgent(BaseAgent):
         
         # SLA анализ
         priority_category = priority_analysis['priority_category']
-        sla_requirements = self.sla_matrix.get(priority_category, {'hours': 24  # Российские executive решения})
+        sla_requirements = self.sla_matrix.get(priority_category, {'hours': 24})
         sla_seconds = sla_requirements['hours'] * 3600
         
         # Вероятность соблюдения SLA
@@ -550,23 +550,6 @@ class TaskCoordinationAgent(BaseAgent):
     def _determine_client_tier(self, client_info: Dict) -> str:
         """Определение уровня клиента"""
         monthly_value = client_info.get('monthly_value', 0)
-
-        # Российская специфика определения tier клиента
-        company_name = client_info.get('company_name', '').lower()
-        
-        # Российские мега-корпорации (приоритет)
-        if any(corp in company_name for corp in ['сбер', 'яндекс', 'mail.ru', 'вк', 'тинькофф']):
-            return 'tier_0_mega_russian'  # Высший приоритет для российских лидеров
-            
-        # FinTech приоритет в России
-        industry = client_info.get('industry', '').lower()
-        if 'fintech' in industry or 'финтех' in industry or 'банк' in industry:
-            return 'tier_1_fintech_priority'
-            
-        # Государственные контракты
-        if any(gov in company_name for gov in ['госуслуги', 'минфин', 'росреестр', 'фнс']):
-            return 'tier_1_government'
-
         
         if monthly_value >= 25000:
             return 'enterprise'
