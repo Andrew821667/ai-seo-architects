@@ -177,7 +177,7 @@ class ProposalGenerationAgent(BaseAgent):
             }
 
     def _analyze_lead_data(self, lead_result: Dict[str, Any]) -> Dict[str, Any]:
-        """Анализ данных лида для персонализации предложения"""
+        """Анализ данных лида для персонализации предложения (ИСПРАВЛЕННАЯ ВЕРСИЯ)"""
 
         # Извлекаем ключевую информацию
         lead_data = lead_result.get("lead_data", {})
@@ -186,6 +186,12 @@ class ProposalGenerationAgent(BaseAgent):
 
         # Определяем размер компании
         employees = lead_data.get("employees", 0)
+        if isinstance(employees, str):
+            try:
+                employees = int(employees.replace(',', '').replace('employees', '').strip())
+            except:
+                employees = 0
+        
         if employees >= 1000:
             company_size = "enterprise"
         elif employees >= 50:
@@ -197,15 +203,16 @@ class ProposalGenerationAgent(BaseAgent):
         industry = lead_data.get("industry", "").lower()
         industry_category = self._map_industry_category(industry)
 
-        # Анализируем текущее состояние SEO
-        current_seo_state = self._analyze_current_seo(lead_data)
+        # Определяем уровень зрелости SEO
+        seo_maturity = self._assess_seo_maturity(company_size, industry_category, final_score)
 
-        # Определяем приоритетные услуги
-        priority_services = self._identify_priority_services(lead_data, current_seo_state)
+        # 🔧 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем estimated_issues
+        estimated_issues = self._estimate_seo_issues(seo_maturity)
 
+        # Формируем результат с ПОЛНОЙ структурой данных
         return {
             "client_info": {
-                "company_name": lead_data.get("company", "Ваша компания"),
+                "company_name": lead_data.get("company_name", "Ваша компания"),
                 "contact_name": lead_data.get("contact_name", ""),
                 "website": lead_data.get("website", ""),
                 "employees": employees,
@@ -215,14 +222,20 @@ class ProposalGenerationAgent(BaseAgent):
             "lead_scoring": {
                 "final_score": final_score,
                 "classification": classification,
-                "priority_level": self._get_priority_level(final_score)
+                "priority_level": "high" if final_score >= 80 else "medium" if final_score >= 60 else "low"
             },
-            "seo_analysis": current_seo_state,
-            "priority_services": priority_services,
+            "seo_analysis": {
+                "website": lead_data.get("website", ""),
+                "current_budget": lead_data.get("current_budget", 0),
+                "maturity_level": seo_maturity,
+                "challenges": lead_data.get("challenges", []),
+                "estimated_issues": estimated_issues,  # 🔧 ИСПРАВЛЕНО!
+                "opportunity_score": min(0.99, final_score / 100 + 0.1)
+            },
+            "priority_services": self._identify_priority_services(company_size, industry_category, seo_maturity),
             "pain_points": lead_data.get("pain_points", []),
             "goals": lead_data.get("goals", [])
         }
-
     def _map_industry_category(self, industry: str) -> str:
         """Маппинг отрасли к категории для pricing"""
         industry_mapping = {
