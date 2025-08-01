@@ -133,6 +133,7 @@ class ProposalGenerationAgent(BaseAgent):
                 "agent": self.agent_id,
                 "timestamp": datetime.now().isoformat(),
                 "execution_time": execution_time,
+            "success": True,
                 "proposal_data": {
                     "proposal_id": f"PROP-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
                     "lead_id": lead_result.get("lead_id"),
@@ -171,6 +172,7 @@ class ProposalGenerationAgent(BaseAgent):
                 "agent": self.agent_id,
                 "timestamp": datetime.now().isoformat(),
                 "execution_time": execution_time,
+            "success": True,
                 "status": "error",
                 "error": str(e),
                 "proposal_data": None
@@ -180,7 +182,7 @@ class ProposalGenerationAgent(BaseAgent):
         """Анализ данных лида для персонализации предложения (ИСПРАВЛЕННАЯ ВЕРСИЯ)"""
 
         # Извлекаем ключевую информацию
-        lead_data = lead_result.get("lead_data", {})
+        lead_data = lead_result.get("enriched_data", {})
         final_score = lead_result.get("final_score", 0)
         classification = lead_result.get("classification", "unqualified")
 
@@ -232,7 +234,7 @@ class ProposalGenerationAgent(BaseAgent):
                 "estimated_issues": estimated_issues,  # 🔧 ИСПРАВЛЕНО!
                 "opportunity_score": min(0.99, final_score / 100 + 0.1)
             },
-            "priority_services": self._identify_priority_services(company_size, industry_category, seo_maturity),
+            "priority_services": self._identify_priority_services(lead_data, {"maturity_level": seo_maturity}),
             "pain_points": lead_data.get("pain_points", []),
             "goals": lead_data.get("goals", [])
         }
@@ -260,6 +262,37 @@ class ProposalGenerationAgent(BaseAgent):
                 return category
 
         return "default"
+
+    
+    def _assess_seo_maturity(self, company_size: str, industry_category: str, final_score: int) -> str:
+        """Оценка уровня зрелости SEO (СОЗДАННЫЙ МЕТОД)"""
+        
+        # Базовая оценка по размеру компании
+        if company_size == "enterprise":
+            base_maturity = "intermediate"
+        elif company_size == "mid_market":
+            base_maturity = "basic"
+        else:
+            base_maturity = "beginner"
+        
+        # Корректировка по отрасли
+        if industry_category in ["fintech", "saas", "ecommerce"]:
+            # Цифровые отрасли обычно более зрелые в SEO
+            if base_maturity == "beginner":
+                base_maturity = "basic"
+            elif base_maturity == "basic":
+                base_maturity = "intermediate"
+        
+        # Корректировка по Lead Score
+        if final_score >= 80:
+            if base_maturity == "beginner":
+                base_maturity = "basic"
+            elif base_maturity == "basic": 
+                base_maturity = "intermediate"
+        elif final_score <= 30:
+            base_maturity = "beginner"
+        
+        return base_maturity
 
     def _analyze_current_seo(self, lead_data: Dict[str, Any]) -> Dict[str, Any]:
         """Анализ текущего состояния SEO клиента"""
