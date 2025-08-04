@@ -20,6 +20,7 @@ from agents.management.task_coordination import TaskCoordinationAgent
 from agents.operational.lead_qualification import LeadQualificationAgent
 from agents.operational.proposal_generation import ProposalGenerationAgent
 from agents.operational.sales_conversation import SalesConversationAgent
+from agents.operational.technical_seo_auditor import TechnicalSEOAuditorAgent
 from mock_data_provider import MockDataProvider
 
 def print_section(title: str):
@@ -74,6 +75,10 @@ async def test_agent_initialization():
         # Sales Conversation Agent
         agents['sales_conversation'] = SalesConversationAgent(data_provider=mock_provider)
         print_success(f"Sales Conversation Agent инициализирован: {agents['sales_conversation'].name}")
+        
+        # Technical SEO Auditor Agent
+        agents['technical_seo_auditor'] = TechnicalSEOAuditorAgent(data_provider=mock_provider)
+        print_success(f"Technical SEO Auditor инициализирован: {agents['technical_seo_auditor'].name}")
         
         print_info(f"Всего агентов инициализировано: {len(agents)}")
         return agents
@@ -280,9 +285,51 @@ async def test_seo_strategic_analysis(agents: Dict[str, Any], qualification_resu
         traceback.print_exc()
         return None
 
+async def test_technical_seo_audit(agents: Dict[str, Any], qualification_result: Dict[str, Any]):
+    """Тест 7: Technical SEO Auditor анализ"""
+    print_section("ТЕСТ 7: Technical SEO Audit")
+    
+    try:
+        print_info("Technical SEO Auditor проводит технический аудит...")
+        
+        audit_task = {
+            "input_data": {
+                "task_type": "full_technical_audit",
+                "domain": qualification_result.get('enriched_data', {}).get('website', 'techcorp.ru'),
+                "industry": qualification_result.get('enriched_data', {}).get('industry', 'fintech'),
+                # Симуляция технических данных
+                "lcp": 3.2,  # seconds
+                "fid": 150,  # ms
+                "cls": 0.15,
+                "mobile_friendly": True,
+                "https_implemented": True,
+                "schema_markup_present": False,
+                "crawling_errors": 8
+            }
+        }
+        
+        audit_result = await agents['technical_seo_auditor'].process_task(audit_task)
+        
+        if audit_result.get('success', False):
+            audit_quality = audit_result.get('audit_quality', 'Unknown')
+            technical_score = audit_result.get('result', {}).get('technical_audit_results', {}).get('overall_technical_score', 0)
+            critical_issues = audit_result.get('result', {}).get('audit_summary', {}).get('critical_issues_count', 0)
+            print_success(f"Technical Audit: {technical_score}/100 score, {critical_issues} critical issues, {audit_quality} quality")
+        else:
+            print_error(f"Ошибка Technical SEO audit: {audit_result.get('error', 'Unknown error')}")
+            return None
+            
+        return audit_result
+        
+    except Exception as e:
+        print_error(f"Ошибка в Technical SEO audit: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 async def test_task_coordination(agents: Dict[str, Any]):
-    """Тест 7: Task Coordination"""
-    print_section("ТЕСТ 7: Task Coordination")
+    """Тест 8: Task Coordination"""
+    print_section("ТЕСТ 8: Task Coordination")
     
     try:
         print_info("Task Coordinator маршрутизует задачу...")
@@ -325,6 +372,7 @@ async def test_full_integration():
         'proposal_generation': False,
         'bd_assessment': False,
         'seo_strategic_analysis': False,
+        'technical_seo_audit': False,
         'task_coordination': False
     }
     
@@ -369,7 +417,13 @@ async def test_full_integration():
         if seo_result:
             test_results['seo_strategic_analysis'] = True
     
-    # Тест 7: Task Coordination
+    # Тест 7: Technical SEO Audit
+    if qualification_result:
+        technical_audit_result = await test_technical_seo_audit(agents, qualification_result)
+        if technical_audit_result:
+            test_results['technical_seo_audit'] = True
+    
+    # Тест 8: Task Coordination
     coordination_result = await test_task_coordination(agents)
     if coordination_result:
         test_results['task_coordination'] = True
