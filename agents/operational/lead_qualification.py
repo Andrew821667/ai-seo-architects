@@ -236,7 +236,21 @@ class LeadQualificationAgent(BaseAgent):
         try:
             # Извлекаем и валидируем входные данные
             input_data = task_data.get("input_data", {})
-            lead_data = LeadData(**input_data)
+            
+            # Безопасное создание LeadData с обработкой отсутствующих полей
+            try:
+                lead_data = LeadData(**input_data)
+            except Exception as validation_error:
+                # Если валидация не прошла, создаем минимальный объект
+                logger.warning(f"Validation error, using basic data: {validation_error}")
+                lead_data = LeadData(
+                    company_name=input_data.get("company_name", "Unknown Company"),
+                    email=input_data.get("email", "unknown@example.com")
+                )
+                # Добавляем дополнительные поля если они есть
+                for field in ["industry", "company_size", "budget_range", "timeline", "phone", "website"]:
+                    if field in input_data:
+                        setattr(lead_data, field, input_data[field])
             
             logger.info(f"🔍 Начинаем квалификацию лида: {lead_data.company_name}")
             
@@ -307,6 +321,9 @@ class LeadQualificationAgent(BaseAgent):
             logger.info(f"✅ Квалификация завершена: {qualification} (Score: {total_score})")
             
             return {
+                "success": True,
+                "agent": self.agent_id,
+                "timestamp": datetime.now().isoformat(),
                 "qualification_result": qualification_result.dict(),
                 "lead_score": total_score,
                 "qualification": qualification,
@@ -329,7 +346,14 @@ class LeadQualificationAgent(BaseAgent):
             
         except Exception as e:
             logger.error(f"❌ Ошибка квалификации лида: {str(e)}")
-            raise Exception(f"Lead qualification failed: {str(e)}")
+            return {
+                "success": False,
+                "agent": self.agent_id,
+                "timestamp": datetime.now().isoformat(),
+                "error": f"Lead qualification failed: {str(e)}",
+                "lead_score": 0,
+                "qualification": "error"
+            }
     
     async def _enrich_lead_data(self, lead_data: LeadData) -> LeadData:
         """Обогащение данных лида через внешние источники"""
@@ -865,8 +889,8 @@ class LeadQualificationAgent(BaseAgent):
                     return "Medium (50-500 employees)"
                 else:
                     return "Small (1-50 employees)"
-        except:
-            print(f"Ошибка при анализе размера компании: {lead_data.company_name}")
+        except Exception as e:
+            print(f"Ошибка при анализе размера компании: {str(e)}")
             return "Unknown size"
         
         return None
