@@ -15,6 +15,7 @@ sys.path.insert(0, '.')
 
 # Импорт агентов
 from agents.executive.business_development_director import BusinessDevelopmentDirectorAgent
+from agents.executive.chief_seo_strategist import ChiefSEOStrategistAgent
 from agents.management.task_coordination import TaskCoordinationAgent  
 from agents.operational.lead_qualification import LeadQualificationAgent
 from agents.operational.proposal_generation import ProposalGenerationAgent
@@ -49,6 +50,10 @@ async def test_agent_initialization():
         # Создаем mock data provider
         mock_provider = MockDataProvider()
         print_info(f"Mock Data Provider создан: {mock_provider.name}")
+        
+        # Chief SEO Strategist
+        agents['chief_seo_strategist'] = ChiefSEOStrategistAgent(data_provider=mock_provider)
+        print_success(f"Chief SEO Strategist инициализирован: {agents['chief_seo_strategist'].name}")
         
         # Business Development Director
         agents['bd_director'] = BusinessDevelopmentDirectorAgent(data_provider=mock_provider)
@@ -238,9 +243,46 @@ async def test_business_development_assessment(agents: Dict[str, Any], qualifica
         traceback.print_exc()
         return None
 
+async def test_seo_strategic_analysis(agents: Dict[str, Any], qualification_result: Dict[str, Any]):
+    """Тест 6: Chief SEO Strategist анализ"""
+    print_section("ТЕСТ 6: SEO Strategic Analysis")
+    
+    try:
+        print_info("Chief SEO Strategist проводит стратегический анализ...")
+        
+        seo_task = {
+            "input_data": {
+                "task_type": "seo_strategic_analysis",
+                **qualification_result.get('enriched_data', {}),
+                "monthly_organic_traffic": 150000,
+                "ranking_keywords_count": 12500,
+                "domain_authority": 45,
+                "current_seo_spend": 180000
+            }
+        }
+        
+        seo_result = await agents['chief_seo_strategist'].process_task(seo_task)
+        
+        if seo_result.get('success', False):
+            strategic_impact = seo_result.get('strategic_impact', 'Unknown')
+            investment_req = seo_result.get('investment_requirement', 0)
+            confidence = seo_result.get('confidence_score', 0)
+            print_success(f"SEO Analysis: {strategic_impact} impact, {investment_req:,} ₽ investment, {confidence:.2f} confidence")
+        else:
+            print_error(f"Ошибка SEO analysis: {seo_result.get('error', 'Unknown error')}")
+            return None
+            
+        return seo_result
+        
+    except Exception as e:
+        print_error(f"Ошибка в SEO strategic analysis: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 async def test_task_coordination(agents: Dict[str, Any]):
-    """Тест 6: Task Coordination"""
-    print_section("ТЕСТ 6: Task Coordination")
+    """Тест 7: Task Coordination"""
+    print_section("ТЕСТ 7: Task Coordination")
     
     try:
         print_info("Task Coordinator маршрутизует задачу...")
@@ -282,6 +324,7 @@ async def test_full_integration():
         'sales_conversation': False,
         'proposal_generation': False,
         'bd_assessment': False,
+        'seo_strategic_analysis': False,
         'task_coordination': False
     }
     
@@ -320,7 +363,13 @@ async def test_full_integration():
         if bd_result:
             test_results['bd_assessment'] = True
     
-    # Тест 6: Task Coordination
+    # Тест 6: SEO Strategic Analysis
+    if qualification_result:
+        seo_result = await test_seo_strategic_analysis(agents, qualification_result)
+        if seo_result:
+            test_results['seo_strategic_analysis'] = True
+    
+    # Тест 7: Task Coordination
     coordination_result = await test_task_coordination(agents)
     if coordination_result:
         test_results['task_coordination'] = True
