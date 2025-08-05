@@ -119,8 +119,8 @@ class ChiefSEOStrategistAgent(BaseAgent):
         }
 
         print(f"🎯 {self.name} инициализирован:")
-        print(f"📊 Strategic Keywords Threshold: {self.strategic_seo_thresholds['enterprise_keywords_min']:,}")
-        print(f"🚀 Target Organic Traffic: {self.strategic_seo_thresholds['monthly_traffic_threshold']:,}/месяц")
+        print(f"📊 Strategic Keywords Threshold: {self.strategic_seo_thresholds['enterprise_keywords_min']:,.0f}")
+        print(f"🚀 Target Organic Traffic: {self.strategic_seo_thresholds['monthly_traffic_threshold']:,.0f}/месяц")
         print(f"📈 Target ROI Multiplier: {self.strategic_kpis['roi_multiplier_target']}x")
         print(f"🔍 Algorithm Expertise: Google + Yandex")
 
@@ -212,7 +212,9 @@ class ChiefSEOStrategistAgent(BaseAgent):
         print(f"🔍 Chief SEO Strategist анализирует:")
         print(f"   Company: {company_data.get('company_name', 'N/A')}")
         print(f"   Industry: {company_data.get('industry', 'N/A')}")
-        print(f"   Current SEO Spend: {company_data.get('current_seo_spend', 0):,} ₽")
+        seo_spend = company_data.get('current_seo_spend', 0)
+        seo_spend_num = int(seo_spend) if isinstance(seo_spend, (str, int, float)) and str(seo_spend).replace('.', '').isdigit() else 0
+        print(f"   Current SEO Spend: {seo_spend_num:,.0f} ₽")
 
         # 1. Strategic SEO Assessment
         strategic_assessment = self._assess_seo_strategic_position(company_data)

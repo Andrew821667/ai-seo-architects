@@ -463,6 +463,31 @@ class ContentStrategyAgent(BaseAgent):
             "recommendations": self._generate_difficulty_recommendations(difficulty_distribution)
         }
     
+    def _generate_difficulty_recommendations(self, difficulty_distribution: Dict[str, int]) -> List[str]:
+        """Генерация рекомендаций на основе распределения сложности"""
+        recommendations = []
+        
+        total_keywords = sum(difficulty_distribution.values())
+        if total_keywords == 0:
+            return ["Добавить ключевые слова для анализа"]
+        
+        easy_percentage = difficulty_distribution.get("easy", 0) / total_keywords
+        medium_percentage = difficulty_distribution.get("medium", 0) / total_keywords  
+        hard_percentage = difficulty_distribution.get("hard", 0) / total_keywords
+        
+        if easy_percentage > 0.6:
+            recommendations.append("Добавить более конкурентные ключевые слова для роста")
+        elif easy_percentage < 0.2:
+            recommendations.append("Добавить низкоконкурентные ключевые слова для быстрых побед")
+        
+        if hard_percentage > 0.4:
+            recommendations.append("Сосредоточиться сначала на менее конкурентных запросах")
+        
+        if medium_percentage < 0.3:
+            recommendations.append("Добавить ключевые слова средней сложности для баланса")
+        
+        return recommendations if recommendations else ["Сбалансированное распределение сложности"]
+    
     def _map_search_intent(self, keywords: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Маппинг поисковых интентов"""
         
@@ -485,6 +510,36 @@ class ContentStrategyAgent(BaseAgent):
             "intent_mapping": intent_mapping,
             "content_recommendations": self._generate_intent_based_content_recommendations(intent_mapping)
         }
+    
+    def _generate_intent_based_content_recommendations(self, intent_mapping: Dict[str, List]) -> List[str]:
+        """Генерация рекомендаций на основе поисковых интентов"""
+        recommendations = []
+        
+        total_keywords = sum(len(keywords) for keywords in intent_mapping.values())
+        if total_keywords == 0:
+            return ["Добавить ключевые слова для анализа интентов"]
+        
+        # Анализ распределения интентов
+        informational_pct = len(intent_mapping.get("informational", [])) / total_keywords
+        commercial_pct = len(intent_mapping.get("commercial", [])) / total_keywords
+        transactional_pct = len(intent_mapping.get("transactional", [])) / total_keywords
+        navigational_pct = len(intent_mapping.get("navigational", [])) / total_keywords
+        
+        if informational_pct > 0.6:
+            recommendations.append("Создать больше коммерческого и транзакционного контента")
+        elif informational_pct < 0.2:
+            recommendations.append("Добавить образовательный контент для привлечения новых посетителей")
+        
+        if commercial_pct < 0.2:
+            recommendations.append("Увеличить количество контента для коммерческих запросов")
+        
+        if transactional_pct < 0.15:
+            recommendations.append("Создать больше продающих страниц и лендингов")
+        
+        if navigational_pct > 0.3:
+            recommendations.append("Оптимизировать брендинг и узнаваемость")
+        
+        return recommendations if recommendations else ["Сбалансированное распределение интентов"]
     
     def _identify_content_opportunities(self, keywords: List[Dict[str, Any]], industry: str) -> List[Dict[str, Any]]:
         """Выявление контентных возможностей"""

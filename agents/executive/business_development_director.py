@@ -95,8 +95,8 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
         }
 
         print(f"🎯 {self.name} инициализирован:")
-        print(f"💰 Мин Enterprise сделка: {self.min_enterprise_deal_size:,} ₽/месяц")
-        print(f"  🤝 Порог партнерства: {self.strategic_partnership_threshold:,} ₽")
+        print(f"💰 Мин Enterprise сделка: {self.min_enterprise_deal_size:,.0f} ₽/месяц")
+        print(f"  🤝 Порог партнерства: {self.strategic_partnership_threshold:,.0f} ₽")
         print(f"  🏢 Industry Expertise: {len(self.industry_expertise)} verticals")
         print(f"  📊 Target ARR Growth: {self.kpi_targets['arr_growth']*100}%")
 
@@ -190,8 +190,10 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
         
         print(f"🔍 BD Director получил данные:")
         print(f"   Company: {company_data.get('company_name', 'N/A')}")
-        print(f"   Revenue: {company_data.get('annual_revenue', 0):,} ₽")
-        print(f"   SEO Spend: {company_data.get('current_seo_spend', 0):,} ₽")
+        print(f"   Revenue: {company_data.get('annual_revenue', 0):,.0f} ₽")
+        seo_spend = company_data.get('current_seo_spend', 0)
+        seo_spend_num = int(seo_spend) if isinstance(seo_spend, (str, int, float)) and str(seo_spend).replace('.', '').isdigit() else 0
+        print(f"   SEO Spend: {seo_spend_num:,.0f} ₽")
         print(f"   Source: {'input_data' if 'input_data' in data else 'company_data'}")
 
         # Enterprise квалификация
