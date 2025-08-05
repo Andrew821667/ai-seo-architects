@@ -21,6 +21,7 @@ from agents.operational.lead_qualification import LeadQualificationAgent
 from agents.operational.proposal_generation import ProposalGenerationAgent
 from agents.operational.sales_conversation import SalesConversationAgent
 from agents.operational.technical_seo_auditor import TechnicalSEOAuditorAgent
+from agents.operational.content_strategy import ContentStrategyAgent
 from mock_data_provider import MockDataProvider
 
 def print_section(title: str):
@@ -79,6 +80,10 @@ async def test_agent_initialization():
         # Technical SEO Auditor Agent
         agents['technical_seo_auditor'] = TechnicalSEOAuditorAgent(data_provider=mock_provider)
         print_success(f"Technical SEO Auditor инициализирован: {agents['technical_seo_auditor'].name}")
+        
+        # Content Strategy Agent
+        agents['content_strategy'] = ContentStrategyAgent(data_provider=mock_provider)
+        print_success(f"Content Strategy Agent инициализирован: {agents['content_strategy'].name}")
         
         print_info(f"Всего агентов инициализировано: {len(agents)}")
         return agents
@@ -327,9 +332,47 @@ async def test_technical_seo_audit(agents: Dict[str, Any], qualification_result:
         traceback.print_exc()
         return None
 
+async def test_content_strategy_analysis(agents: Dict[str, Any], qualification_result: Dict[str, Any]):
+    """Тест 8: Content Strategy Analysis"""
+    print_section("ТЕСТ 8: Content Strategy Analysis")
+    
+    try:
+        print_info("Content Strategy Agent проводит контентную стратегию...")
+        
+        content_task = {
+            "input_data": {
+                "task_type": "content_strategy",
+                "domain": qualification_result.get('enriched_data', {}).get('website', 'techcorp.ru'),
+                "industry": qualification_result.get('enriched_data', {}).get('industry', 'fintech'),
+                "business_goals": ["traffic_growth", "lead_generation"],
+                "monthly_budget": 150000,
+                "target_audience": {"segment": "B2B", "size": "enterprise"}
+            }
+        }
+        
+        content_result = await agents['content_strategy'].process_task(content_task)
+        
+        if content_result.get('success', False):
+            content_quality = content_result.get('content_quality', 'Unknown')
+            strategy_confidence = content_result.get('strategy_confidence', 0)
+            keyword_count = content_result.get('result', {}).get('keyword_research', {}).get('keyword_research_results', {}).get('total_keywords', 0)
+            monthly_budget = content_result.get('result', {}).get('content_strategy', {}).get('content_strategy', {}).get('monthly_budget', 0)
+            print_success(f"Content Strategy: {keyword_count} keywords, {monthly_budget:,}₽ budget, {content_quality} quality, {strategy_confidence:.2f} confidence")
+        else:
+            print_error(f"Ошибка Content Strategy analysis: {content_result.get('error', 'Unknown error')}")
+            return None
+            
+        return content_result
+        
+    except Exception as e:
+        print_error(f"Ошибка в Content Strategy analysis: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 async def test_task_coordination(agents: Dict[str, Any]):
-    """Тест 8: Task Coordination"""
-    print_section("ТЕСТ 8: Task Coordination")
+    """Тест 9: Task Coordination"""
+    print_section("ТЕСТ 9: Task Coordination")
     
     try:
         print_info("Task Coordinator маршрутизует задачу...")
@@ -373,6 +416,7 @@ async def test_full_integration():
         'bd_assessment': False,
         'seo_strategic_analysis': False,
         'technical_seo_audit': False,
+        'content_strategy_analysis': False,
         'task_coordination': False
     }
     
@@ -423,7 +467,13 @@ async def test_full_integration():
         if technical_audit_result:
             test_results['technical_seo_audit'] = True
     
-    # Тест 8: Task Coordination
+    # Тест 8: Content Strategy Analysis
+    if qualification_result:
+        content_strategy_result = await test_content_strategy_analysis(agents, qualification_result)
+        if content_strategy_result:
+            test_results['content_strategy_analysis'] = True
+    
+    # Тест 9: Task Coordination
     coordination_result = await test_task_coordination(agents)
     if coordination_result:
         test_results['task_coordination'] = True
