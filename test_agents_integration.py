@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Тест интеграции всех 5 агентов AI SEO Architects
+Тест интеграции всех 14 агентов AI SEO Architects
 Проверяет совместную работу агентов в полном цикле
 """
 
@@ -19,11 +19,15 @@ from agents.executive.chief_seo_strategist import ChiefSEOStrategistAgent
 from agents.management.task_coordination import TaskCoordinationAgent
 from agents.management.sales_operations_manager import SalesOperationsManagerAgent
 from agents.management.technical_seo_operations_manager import TechnicalSEOOperationsManagerAgent
+from agents.management.client_success_manager import ClientSuccessManagerAgent
 from agents.operational.lead_qualification import LeadQualificationAgent
 from agents.operational.proposal_generation import ProposalGenerationAgent
 from agents.operational.sales_conversation import SalesConversationAgent
 from agents.operational.technical_seo_auditor import TechnicalSEOAuditorAgent
 from agents.operational.content_strategy import ContentStrategyAgent
+from agents.operational.link_building import LinkBuildingAgent
+from agents.operational.competitive_analysis import CompetitiveAnalysisAgent
+from agents.operational.reporting import ReportingAgent
 from mock_data_provider import MockDataProvider
 
 def print_section(title: str):
@@ -94,6 +98,22 @@ async def test_agent_initialization():
         # Technical SEO Operations Manager Agent
         agents['technical_seo_operations_manager'] = TechnicalSEOOperationsManagerAgent(data_provider=mock_provider)
         print_success(f"Technical SEO Operations Manager инициализирован: {agents['technical_seo_operations_manager'].name}")
+        
+        # Client Success Manager Agent
+        agents['client_success_manager'] = ClientSuccessManagerAgent(data_provider=mock_provider)
+        print_success(f"Client Success Manager инициализирован: {agents['client_success_manager'].name}")
+        
+        # Link Building Agent
+        agents['link_building'] = LinkBuildingAgent(data_provider=mock_provider)
+        print_success(f"Link Building Agent инициализирован: {agents['link_building'].name}")
+        
+        # Competitive Analysis Agent
+        agents['competitive_analysis'] = CompetitiveAnalysisAgent(data_provider=mock_provider)
+        print_success(f"Competitive Analysis Agent инициализирован: {agents['competitive_analysis'].name}")
+        
+        # Reporting Agent
+        agents['reporting'] = ReportingAgent(data_provider=mock_provider)
+        print_success(f"Reporting Agent инициализирован: {agents['reporting'].name}")
         
         print_info(f"Всего агентов инициализировано: {len(agents)}")
         return agents
@@ -566,6 +586,154 @@ async def test_technical_seo_operations_analysis(agents: Dict[str, Any], qualifi
         traceback.print_exc()
         return None
 
+async def test_client_success_management(agents: Dict[str, Any], qualification_result: Dict[str, Any]):
+    """Тест 12: Client Success Manager Analysis"""
+    print_section("ТЕСТ 12: Client Success Management")
+    
+    try:
+        print_info("Client Success Manager проводит анализ здоровья клиента...")
+        
+        client_success_task = {
+            "task_type": "client_health_assessment",
+            "client_data": {
+                "company_name": qualification_result.get('enriched_data', {}).get('company_name', 'TechCorp Solutions'),
+                "monthly_value": 850000,
+                "engagement_score": 78,
+                "payment_delays": 1,
+                "support_tickets": 3,
+                "feature_adoption": 85,
+                "nps_score": 8,
+                "last_login_days": 2
+            }
+        }
+        
+        client_success_result = await agents['client_success_manager'].process_task(client_success_task)
+        
+        if client_success_result.get('success', False):
+            health_score = client_success_result.get('health_score', 0)
+            health_status = client_success_result.get('health_status', 'unknown')
+            nps_score = client_success_result.get('metrics', {}).get('nps_score', 0)
+            recommendations_count = len(client_success_result.get('recommendations', []))
+            print_success(f"Client Success Analysis: {health_score}/100 health score, {health_status} status, NPS {nps_score}/10, {recommendations_count} recommendations")
+        else:
+            print_error(f"Ошибка Client Success analysis: {client_success_result.get('error', 'Unknown error')}")
+            return None
+            
+        return client_success_result
+        
+    except Exception as e:
+        print_error(f"Ошибка в Client Success analysis: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+async def test_link_building_analysis(agents: Dict[str, Any], qualification_result: Dict[str, Any]):
+    """Тест 13: Link Building Agent Analysis"""
+    print_section("ТЕСТ 13: Link Building Analysis")
+    
+    try:
+        print_info("Link Building Agent проводит анализ ссылочного профиля...")
+        
+        link_building_task = {
+            "task_type": "link_prospect_analysis",
+            "domain_data": {
+                "domain": qualification_result.get('enriched_data', {}).get('website', 'techcorp.ru').replace('https://', ''),
+                "industry": qualification_result.get('enriched_data', {}).get('industry', 'fintech')
+            }
+        }
+        
+        link_building_result = await agents['link_building'].process_task(link_building_task)
+        
+        if link_building_result.get('success', False):
+            total_prospects = link_building_result.get('total_prospects_found', 0)
+            premium_prospects = link_building_result.get('quality_distribution', {}).get('premium', 0)
+            high_prospects = link_building_result.get('quality_distribution', {}).get('high', 0)
+            monthly_capacity = link_building_result.get('estimated_monthly_capacity', {}).get('total_realistic_capacity', 0)
+            print_success(f"Link Building Analysis: {total_prospects} prospects found, {premium_prospects} premium + {high_prospects} high quality, {monthly_capacity} monthly capacity")
+        else:
+            print_error(f"Ошибка Link Building analysis: {link_building_result.get('error', 'Unknown error')}")
+            return None
+            
+        return link_building_result
+        
+    except Exception as e:
+        print_error(f"Ошибка в Link Building analysis: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+async def test_competitive_analysis(agents: Dict[str, Any], qualification_result: Dict[str, Any]):
+    """Тест 14: Competitive Analysis Agent"""
+    print_section("ТЕСТ 14: Competitive Analysis")
+    
+    try:
+        print_info("Competitive Analysis Agent проводит конкурентный анализ...")
+        
+        competitive_task = {
+            "task_type": "serp_analysis",
+            "query_data": {
+                "keywords": ["финтех услуги", "цифровые банковские решения", "SEO для финтеха"],
+                "our_domain": qualification_result.get('enriched_data', {}).get('website', 'techcorp.ru').replace('https://', '')
+            }
+        }
+        
+        competitive_result = await agents['competitive_analysis'].process_task(competitive_task)
+        
+        if competitive_result.get('success', False):
+            keywords_analyzed = competitive_result.get('keywords_analyzed', 0)
+            serp_ownership = competitive_result.get('serp_feature_ownership', 0)
+            high_priority_opps = len(competitive_result.get('high_priority_opportunities', []))
+            medium_priority_opps = len(competitive_result.get('medium_priority_opportunities', []))
+            print_success(f"Competitive Analysis: {keywords_analyzed} keywords analyzed, {serp_ownership:.1f}% SERP ownership, {high_priority_opps} high + {medium_priority_opps} medium priority opportunities")
+        else:
+            print_error(f"Ошибка Competitive analysis: {competitive_result.get('error', 'Unknown error')}")
+            return None
+            
+        return competitive_result
+        
+    except Exception as e:
+        print_error(f"Ошибка в Competitive analysis: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+async def test_reporting_analysis(agents: Dict[str, Any], qualification_result: Dict[str, Any]):
+    """Тест 15: Reporting Agent Analysis"""
+    print_section("ТЕСТ 15: Reporting Analysis")
+    
+    try:
+        print_info("Reporting Agent генерирует комплексный отчет...")
+        
+        reporting_task = {
+            "task_type": "generate_report", 
+            "report_config": {
+                "type": "comprehensive_performance",
+                "domain": qualification_result.get('enriched_data', {}).get('website', 'techcorp.ru').replace('https://', ''),
+                "period_days": 30,
+                "client_type": "enterprise"
+            }
+        }
+        
+        reporting_result = await agents['reporting'].process_task(reporting_task)
+        
+        if reporting_result.get('success', False):
+            report_type = reporting_result.get('report_metadata', {}).get('report_type', 'unknown')
+            confidence_score = reporting_result.get('report_metadata', {}).get('confidence_score', 0)
+            recommendations_count = len(reporting_result.get('recommendations', []))
+            export_formats = len(reporting_result.get('export_formats', []))
+            print_success(f"Reporting Analysis: {report_type} report generated, {confidence_score:.1%} confidence, {recommendations_count} recommendations, {export_formats} export formats")
+        else:
+            print_error(f"Ошибка Reporting analysis: {reporting_result.get('error', 'Unknown error')}")
+            return None
+            
+        return reporting_result
+        
+    except Exception as e:
+        print_error(f"Ошибка в Reporting analysis: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 async def test_full_integration():
     """Полный интеграционный тест"""
     print_section("ПОЛНЫЙ ИНТЕГРАЦИОННЫЙ ТЕСТ AI SEO ARCHITECTS")
@@ -581,7 +749,11 @@ async def test_full_integration():
         'content_strategy_analysis': False,
         'task_coordination': False,
         'sales_operations_analysis': False,
-        'technical_seo_operations_analysis': False
+        'technical_seo_operations_analysis': False,
+        'client_success_management': False,
+        'link_building_analysis': False,
+        'competitive_analysis': False,
+        'reporting_analysis': False
     }
     
     # Тест 1: Инициализация
@@ -653,6 +825,30 @@ async def test_full_integration():
         tech_seo_ops_result = await test_technical_seo_operations_analysis(agents, qualification_result)
         if tech_seo_ops_result:
             test_results['technical_seo_operations_analysis'] = True
+    
+    # Тест 12: Client Success Management
+    if qualification_result:
+        client_success_result = await test_client_success_management(agents, qualification_result)
+        if client_success_result:
+            test_results['client_success_management'] = True
+    
+    # Тест 13: Link Building Analysis
+    if qualification_result:
+        link_building_result = await test_link_building_analysis(agents, qualification_result)
+        if link_building_result:
+            test_results['link_building_analysis'] = True
+    
+    # Тест 14: Competitive Analysis
+    if qualification_result:
+        competitive_result = await test_competitive_analysis(agents, qualification_result)
+        if competitive_result:
+            test_results['competitive_analysis'] = True
+    
+    # Тест 15: Reporting Analysis
+    if qualification_result:
+        reporting_result = await test_reporting_analysis(agents, qualification_result)
+        if reporting_result:
+            test_results['reporting_analysis'] = True
     
     return test_results
 

@@ -90,3 +90,17 @@ class CompetitiveData(BaseModel):
     backlink_comparison: Dict[str, Any] = Field(default_factory=dict)
     content_gaps: List[str] = Field(default_factory=list)
     timestamp: datetime = Field(default_factory=datetime.now)
+
+class AgentMetrics(BaseModel):
+    """Метрики работы агента"""
+    agent_name: str
+    agent_type: str  # "executive", "management", "operational"
+    version: str
+    status: str = "active"  # "active", "inactive", "error"
+    total_tasks_processed: int = 0
+    success_rate: float = Field(ge=0, le=1, default=0.0)
+    average_response_time: float = Field(ge=0, default=0.0)  # секунды
+    specialized_metrics: Dict[str, Any] = Field(default_factory=dict)
+    last_activity: datetime = Field(default_factory=datetime.now)
+    error_count: int = 0
+    performance_score: float = Field(ge=0, le=100, default=0.0)
