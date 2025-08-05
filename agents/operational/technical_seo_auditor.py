@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 
 from core.base_agent import BaseAgent
 from core.interfaces.data_models import LeadInput, LeadOutput
+from core.enhanced_methods import SEOAIModelsEnhancer
 
 class TechnicalSEOAuditorAgent(BaseAgent):
     """
@@ -41,6 +42,9 @@ class TechnicalSEOAuditorAgent(BaseAgent):
             knowledge_base="knowledge/operational/technical_seo_auditor.md",
             **kwargs
         )
+
+        # Инициализация SEO AI Models enhancer
+        self.enhancer = SEOAIModelsEnhancer(data_provider) if data_provider else None
 
         # Инициализация статистики
         self.stats = {
@@ -165,9 +169,23 @@ class TechnicalSEOAuditorAgent(BaseAgent):
 
             print(f"🔧 Обработка Technical SEO задачи: {task_type}")
 
-            # Роутинг по типам задач
+            # Роутинг по типам задач с enhanced функциональностью
             if task_type == 'full_technical_audit':
+                # Базовый аудит
                 result = await self._conduct_full_technical_audit(task_data)
+                
+                # Enhanced анализ через SEO AI Models
+                if self.enhancer and input_data.get('domain'):
+                    try:
+                        enhanced_result = await self.enhancer.enhanced_technical_audit(
+                            input_data['domain'], 
+                            **input_data
+                        )
+                        result['enhanced_analysis'] = enhanced_result
+                        result['enhanced'] = True
+                    except Exception as e:
+                        result['enhanced_error'] = str(e)
+                        result['enhanced'] = False
             elif task_type == 'core_web_vitals_audit':
                 result = await self._audit_core_web_vitals(input_data)
             elif task_type == 'crawling_audit':

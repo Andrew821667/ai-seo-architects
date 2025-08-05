@@ -58,6 +58,10 @@ pip install -r requirements.txt
 
 # Запуск интеграционных тестов
 python test_agents_integration.py
+
+# 🤖 ОПЦИОНАЛЬНО: SEO AI Models интеграция
+python setup_seo_ai_models.py        # Автоматическая настройка
+python test_enhanced_integration.py  # Тест enhanced функций
 ```
 
 ### ⚡ Базовое использование
