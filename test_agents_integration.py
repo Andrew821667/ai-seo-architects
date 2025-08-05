@@ -16,7 +16,9 @@ sys.path.insert(0, '.')
 # Импорт агентов
 from agents.executive.business_development_director import BusinessDevelopmentDirectorAgent
 from agents.executive.chief_seo_strategist import ChiefSEOStrategistAgent
-from agents.management.task_coordination import TaskCoordinationAgent  
+from agents.management.task_coordination import TaskCoordinationAgent
+from agents.management.sales_operations_manager import SalesOperationsManagerAgent
+from agents.management.technical_seo_operations_manager import TechnicalSEOOperationsManagerAgent
 from agents.operational.lead_qualification import LeadQualificationAgent
 from agents.operational.proposal_generation import ProposalGenerationAgent
 from agents.operational.sales_conversation import SalesConversationAgent
@@ -84,6 +86,14 @@ async def test_agent_initialization():
         # Content Strategy Agent
         agents['content_strategy'] = ContentStrategyAgent(data_provider=mock_provider)
         print_success(f"Content Strategy Agent инициализирован: {agents['content_strategy'].name}")
+        
+        # Sales Operations Manager Agent
+        agents['sales_operations_manager'] = SalesOperationsManagerAgent(data_provider=mock_provider)
+        print_success(f"Sales Operations Manager инициализирован: {agents['sales_operations_manager'].name}")
+        
+        # Technical SEO Operations Manager Agent
+        agents['technical_seo_operations_manager'] = TechnicalSEOOperationsManagerAgent(data_provider=mock_provider)
+        print_success(f"Technical SEO Operations Manager инициализирован: {agents['technical_seo_operations_manager'].name}")
         
         print_info(f"Всего агентов инициализировано: {len(agents)}")
         return agents
@@ -404,6 +414,158 @@ async def test_task_coordination(agents: Dict[str, Any]):
         traceback.print_exc()
         return None
 
+async def test_sales_operations_analysis(agents: Dict[str, Any], qualification_result: Dict[str, Any], proposal_result: Dict[str, Any]):
+    """Тест 10: Sales Operations Manager Analysis"""
+    print_section("ТЕСТ 10: Sales Operations Analysis")
+    
+    try:
+        print_info("Sales Operations Manager проводит анализ sales операций...")
+        
+        # Подготавливаем mock данные pipeline
+        sales_ops_task = {
+            "analysis_type": "full_pipeline_analysis",
+            "input_data": {
+                "pipeline_data": {
+                    "total_leads": 180,
+                    "qualified_leads": 45,
+                    "proposals_sent": 28,
+                    "deals_won": 8,
+                    "deals_lost": 5,
+                    "lead_to_qualified_rate": 0.25,
+                    "qualified_to_proposal_rate": 0.62,
+                    "proposal_to_win_rate": 0.29,
+                    "avg_lead_response_time": 2.1,
+                    "avg_qualification_time": 16.0,
+                    "avg_proposal_time": 68.0,
+                    "avg_deal_cycle": 38.0,
+                    "total_pipeline_value": 52000000,
+                    "average_deal_size": 3200000,
+                    "monthly_recurring_revenue": 9200000,
+                    "pipeline_velocity": 0.82,
+                    "lead_quality_score": 76.5,
+                    "sales_efficiency": 0.73
+                },
+                "team_data": {
+                    "sdr_performance": [
+                        {"name": "Анна Петрова", "quota_attainment": 1.15, "lead_quality": 8.2},
+                        {"name": "Дмитрий Смирнов", "quota_attainment": 0.95, "lead_quality": 7.8}
+                    ],
+                    "ae_performance": [
+                        {"name": "Елена Кузнецова", "quota_attainment": 1.08, "close_rate": 0.32},
+                        {"name": "Михаил Волков", "quota_attainment": 0.87, "close_rate": 0.28}
+                    ]
+                }
+            }
+        }
+        
+        sales_ops_result = await agents['sales_operations_manager'].process_task(sales_ops_task)
+        
+        if sales_ops_result.get('success', False):
+            pipeline_health = sales_ops_result.get('pipeline_health_score', 0)
+            key_insights_count = len(sales_ops_result.get('key_insights', []))
+            priority_actions_count = len(sales_ops_result.get('priority_actions', []))
+            confidence = sales_ops_result.get('confidence_score', 0)
+            print_success(f"Sales Ops Analysis: {pipeline_health:.1f}/100 pipeline health, {key_insights_count} insights, {priority_actions_count} priority actions, {confidence:.2f} confidence")
+        else:
+            print_error(f"Ошибка Sales Operations analysis: {sales_ops_result.get('error', 'Unknown error')}")
+            return None
+            
+        return sales_ops_result
+        
+    except Exception as e:
+        print_error(f"Ошибка в Sales Operations analysis: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+async def test_technical_seo_operations_analysis(agents: Dict[str, Any], qualification_result: Dict[str, Any]):
+    """Тест 11: Technical SEO Operations Manager Analysis"""
+    print_section("ТЕСТ 11: Technical SEO Operations Analysis")
+    
+    try:
+        print_info("Technical SEO Operations Manager проводит анализ технических операций...")
+        
+        # Подготавливаем mock данные для технического анализа
+        tech_ops_task = {
+            "analysis_type": "comprehensive_operations_analysis",
+            "input_data": {
+                "technical_issues": [
+                    {
+                        "issue_id": "TECH-001",
+                        "issue_type": "core_web_vitals",
+                        "severity": "high",
+                        "title": "LCP превышает 4 секунды на мобильных устройствах",
+                        "affected_pages_count": 1250,
+                        "traffic_impact": 0.35,
+                        "ranking_impact": 0.25,
+                        "solution_priority": 9,
+                        "estimated_fix_time": 72
+                    },
+                    {
+                        "issue_id": "TECH-002",
+                        "issue_type": "crawling", 
+                        "severity": "critical",
+                        "title": "Robots.txt блокирует важные разделы сайта",
+                        "affected_pages_count": 850,
+                        "traffic_impact": 0.60,
+                        "ranking_impact": 0.45,
+                        "solution_priority": 10,
+                        "estimated_fix_time": 24
+                    }
+                ],
+                "cwv_metrics": {
+                    "mobile": {
+                        "lcp_score": 3.8,
+                        "fid_score": 145,
+                        "cls_score": 0.18,
+                        "lcp_rating": "needs-improvement",
+                        "fid_rating": "needs-improvement",
+                        "cls_rating": "needs-improvement"
+                    },
+                    "desktop": {
+                        "lcp_score": 2.1,
+                        "fid_score": 85,
+                        "cls_score": 0.08,
+                        "lcp_rating": "good",
+                        "fid_rating": "good", 
+                        "cls_rating": "good"
+                    }
+                },
+                "project_status": {
+                    "active_projects": 8,
+                    "on_schedule": 5,
+                    "delayed": 2,
+                    "completed_this_month": 3
+                },
+                "team_performance": {
+                    "utilization": 0.82,
+                    "avg_resolution_time": 54.5,
+                    "issues_resolved_this_month": 23,
+                    "projects_delivered_on_time": 0.75
+                }
+            }
+        }
+        
+        tech_ops_result = await agents['technical_seo_operations_manager'].process_task(tech_ops_task)
+        
+        if tech_ops_result.get('success', False):
+            operations_health = tech_ops_result.get('operations_health_score', 0)
+            key_insights_count = len(tech_ops_result.get('key_insights', []))
+            priority_actions_count = len(tech_ops_result.get('priority_actions', []))
+            confidence = tech_ops_result.get('confidence_score', 0)
+            print_success(f"Technical SEO Ops Analysis: {operations_health:.1f}/100 operations health, {key_insights_count} insights, {priority_actions_count} priority actions, {confidence:.2f} confidence")
+        else:
+            print_error(f"Ошибка Technical SEO Operations analysis: {tech_ops_result.get('error', 'Unknown error')}")
+            return None
+            
+        return tech_ops_result
+        
+    except Exception as e:
+        print_error(f"Ошибка в Technical SEO Operations analysis: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 async def test_full_integration():
     """Полный интеграционный тест"""
     print_section("ПОЛНЫЙ ИНТЕГРАЦИОННЫЙ ТЕСТ AI SEO ARCHITECTS")
@@ -417,7 +579,9 @@ async def test_full_integration():
         'seo_strategic_analysis': False,
         'technical_seo_audit': False,
         'content_strategy_analysis': False,
-        'task_coordination': False
+        'task_coordination': False,
+        'sales_operations_analysis': False,
+        'technical_seo_operations_analysis': False
     }
     
     # Тест 1: Инициализация
@@ -477,6 +641,18 @@ async def test_full_integration():
     coordination_result = await test_task_coordination(agents)
     if coordination_result:
         test_results['task_coordination'] = True
+    
+    # Тест 10: Sales Operations Analysis
+    if qualification_result and proposal_result:
+        sales_ops_result = await test_sales_operations_analysis(agents, qualification_result, proposal_result)
+        if sales_ops_result:
+            test_results['sales_operations_analysis'] = True
+    
+    # Тест 11: Technical SEO Operations Analysis
+    if qualification_result:
+        tech_seo_ops_result = await test_technical_seo_operations_analysis(agents, qualification_result)
+        if tech_seo_ops_result:
+            test_results['technical_seo_operations_analysis'] = True
     
     return test_results
 
