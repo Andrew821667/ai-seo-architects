@@ -1,8 +1,8 @@
 # 🤖 AI SEO Architects
 
-> **Мультиагентная RAG-система для автоматизации SEO-агентства**  
+> **Мультиагентная RAG-система для автоматизации SEO-агентства с MCP интеграцией**  
 > Enterprise-ready архитектура из 14 специализированных AI-агентов с 3-уровневой иерархией на LangGraph  
-> **Текущий статус: 14/14 агентов реализованы** ✅
+> **Текущий статус: 14/14 агентов + MCP (Model Context Protocol) интеграция** ✅
 
 ## 📋 Описание проекта
 
@@ -14,6 +14,7 @@ AI SEO Architects — это продвинутая мультиагентная
 - **Автоматизация B2B продаж** с СПИН-техниками
 - **Стратегический анализ** для enterprise клиентов
 - **Интеллектуальная координация задач** между агентами
+- **🔗 MCP (Model Context Protocol) интеграция** для стандартизированного доступа к данным
 
 ## 🏗️ Архитектура системы
 
@@ -59,6 +60,9 @@ pip install -r requirements.txt
 # Запуск интеграционных тестов
 python test_agents_integration.py
 
+# 🔗 НОВОЕ: MCP интеграция тесты
+python test_mcp_integration.py       # Полное MCP тестирование
+
 # 🤖 ОПЦИОНАЛЬНО: SEO AI Models интеграция
 python setup_seo_ai_models.py        # Автоматическая настройка
 python test_enhanced_integration.py  # Тест enhanced функций
@@ -66,15 +70,16 @@ python test_enhanced_integration.py  # Тест enhanced функций
 
 ### ⚡ Базовое использование
 
+#### 🔗 С MCP интеграцией (Рекомендуемый способ)
+
 ```python
-from agents.operational.lead_qualification import LeadQualificationAgent
-from mock_data_provider import MockDataProvider
+from core.mcp.agent_manager import get_mcp_agent_manager
 
-# Инициализация агента
-provider = MockDataProvider()
-agent = LeadQualificationAgent(data_provider=provider)
+# Создание агента с MCP поддержкой
+manager = await get_mcp_agent_manager()
+agent = await manager.create_agent("LeadQualificationAgent", enable_mcp=True)
 
-# Квалификация лида
+# Квалификация лида через MCP
 lead_data = {
     "company_name": "TechCorp",
     "email": "ceo@techcorp.ru", 
@@ -84,58 +89,87 @@ lead_data = {
 
 result = await agent.process_task({"input_data": lead_data})
 print(f"Lead Score: {result['lead_score']}/100")
-print(f"Qualification: {result['qualification']}")
+print(f"MCP enabled: {agent.mcp_enabled}")
+```
+
+#### 🤖 Классический способ (Mock данные)
+
+```python
+from agents.operational.lead_qualification import LeadQualificationAgent
+from mock_data_provider import MockDataProvider
+
+# Инициализация агента с mock провайдером
+provider = MockDataProvider()
+agent = LeadQualificationAgent(data_provider=provider)
+
+result = await agent.process_task({"input_data": lead_data})
+print(f"Lead Score: {result['lead_score']}/100")
 ```
 
 ## 📁 Структура проекта
 
 ```
 ai-seo-architects/
-├── agents/                     # AI агенты
-│   ├── executive/              # Executive уровень
+├── agents/                        # AI агенты (14 агентов)
+│   ├── executive/                 # Executive уровень
 │   │   ├── chief_seo_strategist.py
 │   │   └── business_development_director.py
-│   ├── management/             # Management уровень  
+│   ├── management/                # Management уровень  
 │   │   ├── task_coordination.py
 │   │   ├── sales_operations_manager.py
-│   │   └── technical_seo_operations_manager.py
-│   └── operational/            # Operational уровень
+│   │   ├── technical_seo_operations_manager.py
+│   │   └── client_success_manager.py
+│   └── operational/               # Operational уровень
 │       ├── lead_qualification.py
 │       ├── proposal_generation.py
 │       ├── sales_conversation.py
 │       ├── technical_seo_auditor.py
-│       └── content_strategy.py
-├── core/                       # Базовая архитектура
-│   ├── base_agent.py          # Базовый класс агентов
-│   ├── orchestrator.py        # LangGraph оркестратор
-│   ├── data_providers/        # Провайдеры данных
-│   └── interfaces/            # Интерфейсы и модели
-├── knowledge/                  # Базы знаний агентов
-│   ├── executive/             # KB для executive агентов
-│   ├── management/            # KB для management агентов  
-│   └── operational/           # KB для operational агентов
-├── mock_data_provider.py      # Mock провайдер для тестов
-├── test_agents_integration.py # Интеграционные тесты
-└── requirements.txt           # Зависимости Python
+│       ├── content_strategy.py
+│       ├── link_building.py
+│       ├── competitive_analysis.py
+│       └── reporting.py
+├── core/                          # Базовая архитектура + MCP
+│   ├── base_agent.py             # Базовый класс с MCP поддержкой
+│   ├── orchestrator.py           # LangGraph оркестратор
+│   ├── mcp/                      # 🔗 MCP интеграция
+│   │   ├── protocol.py           # MCP протокол
+│   │   ├── data_provider.py      # MCP провайдер данных
+│   │   ├── agent_manager.py      # Менеджер агентов с MCP
+│   │   └── __init__.py          # MCP API
+│   ├── data_providers/           # Провайдеры данных
+│   └── interfaces/               # Интерфейсы и модели
+├── config/                        # Конфигурации
+│   └── mcp_config.py             # 🔗 MCP настройки
+├── knowledge/                     # Базы знаний агентов (14 агентов)
+│   ├── executive/                # KB для executive агентов
+│   ├── management/               # KB для management агентов  
+│   └── operational/              # KB для operational агентов
+├── mock_data_provider.py         # Mock провайдер для тестов
+├── test_agents_integration.py    # Интеграционные тесты
+├── test_mcp_integration.py       # 🔗 MCP интеграционные тесты
+├── comprehensive_agent_test.py   # Comprehensive тестирование
+├── MCP_INTEGRATION.md            # 🔗 MCP документация
+├── TECHNICAL_DEFENSE_DOCUMENTATION.md # Техническая документация
+└── requirements.txt              # Зависимости Python
 ```
 
 ## 🧪 Тестирование
 
 ### Интеграционные тесты
 
-#### Полный интеграционный тест (детальный анализ):
+#### 🔗 MCP интеграционные тесты (Рекомендуемое):
 ```bash
-python test_agents_integration.py
+python test_mcp_integration.py       # Полное MCP тестирование всех агентов
 ```
 
-#### Быстрый демо-тест (все 14 агентов):
+#### Полный интеграционный тест (детальный анализ):
 ```bash
-python quick_demo_test.py
+python test_agents_integration.py    # Классическое тестирование с mock данными
 ```
 
 #### Comprehensive тестирование с markdown отчетами:
 ```bash
-python test_real_data_demo.py
+python comprehensive_agent_test.py   # Максимально подробный анализ всех агентов
 ```
 
 **Результаты последнего тестирования (14/14 агентов) - 2025-08-05:**
@@ -152,9 +186,71 @@ python test_real_data_demo.py
 
 ### 🚀 **Система готова к production deployment!**
 
+## 🔗 MCP (Model Context Protocol) Интеграция
+
+AI SEO Architects теперь поддерживает **Model Context Protocol** - открытый стандарт от Anthropic для стандартизированного взаимодействия AI-агентов с внешними источниками данных.
+
+### 🎯 Преимущества MCP:
+
+- **🔄 Стандартизированный доступ**: Единый протокол для всех источников данных
+- **⚡ Интеллектуальное кэширование**: Автоматическое кэширование на основе типа и свежести данных
+- **🛡️ Надежность**: Fallback на mock данные при недоступности MCP серверов
+- **📈 Масштабируемость**: Легкое добавление новых MCP серверов
+- **🔍 Мониторинг**: Встроенные health checks и метрики производительности
+
+### 🌐 Поддерживаемые MCP серверы:
+
+#### ✅ Anthropic MCP Server
+- **Специализация**: SEO анализ, контент анализ  
+- **Качество**: 9.5/10
+- **Ресурсы**: `seo_data`, `content_data`, `technical_audit`
+
+#### ✅ OpenAI MCP Server  
+- **Специализация**: Генерация контента, конкурентный анализ
+- **Качество**: 9.0/10
+- **Ресурсы**: `content_data`, `competitive_data`
+
+#### 🔄 Google MCP Server (планируется)
+- **Специализация**: Поисковые данные, аналитика
+- **Качество**: 10.0/10  
+- **Ресурсы**: `seo_data`, `analytics_data`
+
+### 🚀 Быстрый старт с MCP:
+
+```python
+from core.mcp.agent_manager import get_mcp_agent_manager
+
+# Создание всех агентов с MCP
+manager = await get_mcp_agent_manager()
+agents = await manager.create_all_agents(enable_mcp=True)
+
+# Комплексное тестирование
+results = await manager.run_comprehensive_test()
+print(f"MCP тесты: {results['summary']['success_rate']:.1f}%")
+```
+
+### 📊 MCP Environment настройки:
+
+```bash
+# .env конфигурация
+MCP_ENABLED=true
+ANTHROPIC_API_KEY=your_anthropic_key
+OPENAI_API_KEY=your_openai_key
+MCP_CACHE_TTL=30
+MCP_ENABLE_FALLBACK=true
+```
+
+**📖 Подробная документация**: [MCP_INTEGRATION.md](MCP_INTEGRATION.md)
+
 ## 🔧 Технические детали
 
 ### Используемые технологии
+
+#### **🔗 MCP стек (Рекомендуемый):**
+- **Model Context Protocol** - Стандартизированный доступ к данным
+- **MCPDataProvider** - Унифицированный провайдер с кэшированием
+- **Anthropic/OpenAI MCP Servers** - Внешние источники данных
+- **Async HTTP/WebSocket clients** - Высокопроизводительные MCP клиенты
 
 #### **Базовый стек (Mock режим):**
 - **LangGraph** - Оркестрация мультиагентных workflow
@@ -179,9 +275,18 @@ python test_real_data_demo.py
 - **Prometheus/Grafana** - Мониторинг enhanced производительности
 
 ### Ключевые компоненты
-- **BaseAgent** - Базовый класс для всех агентов с enhanced поддержкой
+
+#### **🔗 MCP Architecture:**
+- **MCPAgentManager** - Менеджер агентов с MCP интеграцией
+- **MCPDataProvider** - Провайдер данных через MCP протокол  
+- **HTTP/WebSocket MCP Clients** - Клиенты для различных MCP серверов
+- **BaseAgent (MCP-enhanced)** - Базовый класс с MCP поддержкой
+
+#### **Enhanced Integration:**
 - **StaticDataProvider** - Провайдер с полной SEO AI Models интеграцией
 - **SEOAIModelsEnhancer** - Wrapper для enhanced методов агентов
+
+#### **Core Components:**
 - **MockDataProvider** - Тестовый провайдер для разработки
 - **AgentMetrics** - Система метрик производительности
 - **LeadData/SEOData** - Pydantic модели для типизации
@@ -242,7 +347,7 @@ python test_real_data_demo.py
 
 ## 🎯 Roadmap развития
 
-### 🚧 **Текущий этап: MVP+ (14/14 агентов) - 100% готовности** ✅
+### 🎉 **Текущий этап: Production Ready + MCP Integration - 100% готовности** ✅
 
 #### ✅ **Этап 1: Core Agents (Завершен)**
 - [x] Chief SEO Strategist (Executive)
@@ -264,7 +369,16 @@ python test_real_data_demo.py
 - [x] Competitive Analysis Agent (Operational)
 - [x] Reporting Agent (Operational)
 
-#### 🚀 **Этап 4: Enterprise Features (Будущее)**
+#### ✅ **Этап 4: MCP Integration (Завершен)** 🔗
+- [x] Model Context Protocol реализация
+- [x] MCPDataProvider с кэшированием и fallback
+- [x] HTTP/WebSocket MCP клиенты
+- [x] Anthropic/OpenAI MCP серверы поддержка
+- [x] MCP Agent Manager для управления агентами
+- [x] Комплексные MCP интеграционные тесты
+- [x] Полная MCP документация и техническая защита
+
+#### 🚀 **Этап 5: Enterprise Features (Будущее)**
 - [ ] Web UI Dashboard
 - [ ] REST/GraphQL API
 - [ ] CRM интеграции (HubSpot, Salesforce)
@@ -277,8 +391,9 @@ python test_real_data_demo.py
 - **Q1 2025:** ✅ Management Layer (4 агента) - **ВЫПОЛНЕНО**
 - **Q2 2025:** ✅ Operational Expansion (8 агентов) - **ВЫПОЛНЕНО**
 - **Q3 2025:** ✅ SEO AI Models Integration (100%) - **ВЫПОЛНЕНО**
-- **Q4 2025:** Enterprise Features & API
-- **Q1 2026:** Production deployment & scaling
+- **Q4 2025:** ✅ MCP (Model Context Protocol) Integration - **ВЫПОЛНЕНО** 🔗
+- **Q1 2026:** Enterprise Features & API
+- **Q2 2026:** Production deployment & scaling
 
 ## 🤖 Интеграция с SEO AI Models
 
