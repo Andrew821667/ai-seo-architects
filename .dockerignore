@@ -1,0 +1,89 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.pytest_cache
+.mypy_cache
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.venv
+env
+venv
+
+# Development
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.staging
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs and exports
+logs/
+exports/
+*.log
+
+# Test results and demo files
+DEMO_RESULTS_*.md
+COMPREHENSIVE_AGENT_ANALYSIS_*.md
+AGENT_TEST_RESULTS_*.md
+TESTING_BREAKTHROUGH_RESULTS.md
+
+# Documentation (built will be included)
+*.md
+!README.md
+!CLAUDE.md
+
+# Node.js (if frontend is added later)
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+.tmp
+.temp
+tmp/
+temp/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+
+# Docker
+Dockerfile.*
+docker-compose.override.yml
+.dockerignore

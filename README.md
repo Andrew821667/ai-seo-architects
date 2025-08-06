@@ -43,67 +43,113 @@ AI SEO Architects — это продвинутая мультиагентная
 ## 🚀 Быстрый старт
 
 ### Системные требования
-- Python 3.8+
-- pip или conda
+- Python 3.11+
+- Docker & Docker Compose (рекомендуется)
+- 4GB RAM (минимум)
 - Интернет-соединение для AI моделей
 
-### Установка
+### 🎯 Выберите способ запуска:
 
+#### Option 1: Быстрый запуск API (Рекомендуется)
 ```bash
-# Клонирование репозитория
+# Клонирование и установка
+git clone https://github.com/Andrew821667/ai-seo-architects.git
+cd ai-seo-architects
+pip install -r requirements.txt
+
+# 🚀 Запуск API сервера с дашбордом
+python run_api.py
+
+# ✨ Готово! Открывайте в браузере:
+# 🎛️ Dashboard: http://localhost:8000/dashboard
+# 📚 API Docs: http://localhost:8000/api/docs
+# 🔍 Health: http://localhost:8000/health
+```
+
+#### Option 2: Docker Compose (Production-ready)
+```bash
 git clone https://github.com/Andrew821667/ai-seo-architects.git
 cd ai-seo-architects
 
-# Установка зависимостей
-pip install -r requirements.txt
+# 🐳 Запуск полной инфраструктуры
+docker-compose up -d
 
-# Запуск интеграционных тестов
-python test_agents_integration.py
-
-# 🔗 НОВОЕ: MCP интеграция тесты
-python test_mcp_integration.py       # Полное MCP тестирование
-
-# 🤖 ОПЦИОНАЛЬНО: SEO AI Models интеграция
-python setup_seo_ai_models.py        # Автоматическая настройка
-python test_enhanced_integration.py  # Тест enhanced функций
+# Доступные сервисы:
+# - AI SEO API: http://localhost:8000
+# - Grafana: http://localhost:3000 (admin/admin)
+# - Prometheus: http://localhost:9090
 ```
 
-### ⚡ Базовое использование
+#### Option 3: Классическое тестирование агентов
+```bash
+# Тестирование агентов (как раньше)
+python test_agents_integration.py      # Базовое тестирование
+python test_mcp_integration.py         # MCP интеграция тесты
+python comprehensive_agent_test.py     # Полный анализ
 
-#### 🔗 С MCP интеграцией (Рекомендуемый способ)
-
-```python
-from core.mcp.agent_manager import get_mcp_agent_manager
-
-# Создание агента с MCP поддержкой
-manager = await get_mcp_agent_manager()
-agent = await manager.create_agent("LeadQualificationAgent", enable_mcp=True)
-
-# Квалификация лида через MCP
-lead_data = {
-    "company_name": "TechCorp",
-    "email": "ceo@techcorp.ru", 
-    "industry": "fintech",
-    "budget_range": "5000000-10000000"
-}
-
-result = await agent.process_task({"input_data": lead_data})
-print(f"Lead Score: {result['lead_score']}/100")
-print(f"MCP enabled: {agent.mcp_enabled}")
+# 🔗 НОВОЕ: Тестирование API endpoints
+python test_api_endpoints.py           # Быстрое API тестирование
 ```
 
-#### 🤖 Классический способ (Mock данные)
+## 🎛️ Dashboard и API
 
+### Real-time Dashboard
+Откройте http://localhost:8000/dashboard для:
+- 📊 **Мониторинг системы в реальном времени**
+- 🤖 **Статус всех 14 агентов**  
+- 📈 **Метрики производительности**
+- 🔗 **WebSocket live обновления**
+- 💼 **Бизнес аналитика**
+
+### API Endpoints
+```bash
+# Аутентификация
+POST /auth/login                    # Авторизация (admin/secret)
+GET /auth/me                        # Текущий пользователь
+
+# Агенты
+GET /api/agents/                    # Список агентов
+POST /api/agents/create-all         # Создать всех агентов
+POST /api/agents/{id}/tasks         # Выполнить задачу
+
+# Клиенты и кампании
+GET /api/clients/                   # Список клиентов
+POST /api/campaigns/                # Создать кампанию
+
+# Аналитика
+GET /api/analytics/dashboard        # Данные дашборда
+GET /api/analytics/system           # Системные метрики
+```
+
+### Python API Client
 ```python
-from agents.operational.lead_qualification import LeadQualificationAgent
-from mock_data_provider import MockDataProvider
+import httpx
 
-# Инициализация агента с mock провайдером
-provider = MockDataProvider()
-agent = LeadQualificationAgent(data_provider=provider)
+# Авторизация
+auth = httpx.post("http://localhost:8000/auth/login", json={
+    "username": "admin", "password": "secret"
+})
+token = auth.json()["access_token"]
+headers = {"Authorization": f"Bearer {token}"}
 
-result = await agent.process_task({"input_data": lead_data})
-print(f"Lead Score: {result['lead_score']}/100")
+# Создание агентов
+httpx.post("http://localhost:8000/api/agents/create-all", headers=headers)
+
+# Выполнение задачи
+task_result = httpx.post("http://localhost:8000/api/agents/lead_qualification/tasks", 
+    json={
+        "task_type": "lead_analysis",
+        "input_data": {
+            "company_data": {
+                "company_name": "TechCorp",
+                "industry": "technology",
+                "annual_revenue": "10000000"
+            }
+        }
+    }, 
+    headers=headers
+)
+print(f"Lead Score: {task_result.json()['result']['lead_score']}/100")
 ```
 
 ## 📁 Структура проекта
@@ -148,27 +194,34 @@ ai-seo-architects/
 ├── test_agents_integration.py    # Интеграционные тесты
 ├── test_mcp_integration.py       # 🔗 MCP интеграционные тесты
 ├── comprehensive_agent_test.py   # Comprehensive тестирование
+├── test_api_endpoints.py         # 🔗 НОВОЕ: API endpoints тестирование
+├── run_api.py                    # 🔗 НОВОЕ: Скрипт запуска API сервера
+├── Dockerfile                    # 🐳 Docker контейнеризация
+├── docker-compose.yml           # 🐳 Production инфраструктура  
+├── API_DOCUMENTATION.md          # 🔗 НОВОЕ: Полная API документация
+├── DEPLOYMENT_GUIDE.md          # 🔗 НОВОЕ: Руководство по развертыванию
 ├── MCP_INTEGRATION.md            # 🔗 MCP документация
 ├── TECHNICAL_DEFENSE_DOCUMENTATION.md # Техническая документация
-└── requirements.txt              # Зависимости Python
+└── requirements.txt              # Зависимости Python (обновлены)
 ```
 
 ## 🧪 Тестирование
 
 ### Интеграционные тесты
 
-#### 🔗 MCP интеграционные тесты (Рекомендуемое):
+#### 🔗 НОВОЕ: API endpoints тестирование (Рекомендуемое):
+```bash
+python test_api_endpoints.py         # Быстрое тестирование всех API функций
+```
+
+#### MCP интеграционные тесты:
 ```bash
 python test_mcp_integration.py       # Полное MCP тестирование всех агентов
 ```
 
-#### Полный интеграционный тест (детальный анализ):
+#### Классические тесты агентов:
 ```bash
-python test_agents_integration.py    # Классическое тестирование с mock данными
-```
-
-#### Comprehensive тестирование с markdown отчетами:
-```bash
+python test_agents_integration.py    # Базовое тестирование с mock данными
 python comprehensive_agent_test.py   # Максимально подробный анализ всех агентов
 ```
 

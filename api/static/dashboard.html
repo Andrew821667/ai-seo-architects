@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI SEO Architects - Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            color: #2a5298;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .connection-status {
+            float: right;
+            margin-top: 5px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-connected {
+            background: #10b981;
+        }
+
+        .status-disconnected {
+            background: #ef4444;
+        }
+
+        .status-connecting {
+            background: #f59e0b;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .dashboard {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .metric-title {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-change {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .metric-change.positive {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .metric-change.negative {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .charts-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+
+        .agents-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .agents-list {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .agent-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .agent-item:last-child {
+            border-bottom: none;
+        }
+
+        .agent-name {
+            font-weight: 500;
+            color: #1f2937;
+        }
+
+        .agent-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-idle {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .activity-feed {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .activity-item {
+            display: flex;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-time {
+            color: #6b7280;
+            font-size: 0.8rem;
+            min-width: 60px;
+        }
+
+        .activity-message {
+            flex: 1;
+            margin-left: 1rem;
+            color: #374151;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+
+        .spinner {
+            border: 2px solid #e5e7eb;
+            border-left: 2px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                padding: 1rem;
+            }
+            
+            .charts-section,
+            .agents-section {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                padding: 1rem;
+            }
+
+            .connection-status {
+                float: none;
+                margin-top: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 AI SEO Architects Dashboard</h1>
+        <div class="connection-status">
+            <span class="status-indicator status-connecting" id="statusIndicator"></span>
+            <span id="connectionStatus">Подключение...</span>
+        </div>
+    </div>
+
+    <div class="dashboard">
+        <!-- System Metrics -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-title">Системная нагрузка</div>
+                <div class="metric-value" id="cpuUsage">--</div>
+                <div class="metric-change positive" id="cpuChange">CPU</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-title">Использование памяти</div>
+                <div class="metric-value" id="memoryUsage">--</div>
+                <div class="metric-change positive" id="memoryChange">RAM</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-title">Активные агенты</div>
+                <div class="metric-value" id="activeAgents">--</div>
+                <div class="metric-change positive" id="agentsChange">из 14</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-title">Запросов в час</div>
+                <div class="metric-value" id="requestsPerHour">--</div>
+                <div class="metric-change positive" id="requestsChange">req/h</div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <div class="chart-container">
+                <div class="chart-title">Производительность системы</div>
+                <canvas id="performanceChart" width="400" height="200"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title">Статистика агентов</div>
+                <canvas id="agentsChart" width="200" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Agents and Activity Section -->
+        <div class="agents-section">
+            <div class="agents-list">
+                <div class="chart-title">Статус агентов</div>
+                <div id="agentsList" class="loading">
+                    <div class="spinner"></div>
+                    Загрузка агентов...
+                </div>
+            </div>
+            
+            <div class="activity-feed">
+                <div class="chart-title">Недавняя активность</div>
+                <div id="activityFeed" class="loading">
+                    <div class="spinner"></div>
+                    Загрузка активности...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Dashboard {
+            constructor() {
+                this.ws = null;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.performanceChart = null;
+                this.agentsChart = null;
+                this.init();
+            }
+
+            init() {
+                this.initCharts();
+                this.connectWebSocket();
+                this.loadInitialData();
+            }
+
+            initCharts() {
+                // Performance Chart
+                const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+                this.performanceChart = new Chart(performanceCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'CPU %',
+                            data: [],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4
+                        }, {
+                            label: 'Memory %',
+                            data: [],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        }
+                    }
+                });
+
+                // Agents Chart
+                const agentsCtx = document.getElementById('agentsChart').getContext('2d');
+                this.agentsChart = new Chart(agentsCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Активные', 'Ожидание', 'Ошибка'],
+                        datasets: [{
+                            data: [0, 0, 0],
+                            backgroundColor: [
+                                '#10b981',
+                                '#f59e0b', 
+                                '#ef4444'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            connectWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws/dashboard`;
+                
+                try {
+                    this.ws = new WebSocket(wsUrl);
+                    this.setupWebSocketHandlers();
+                } catch (error) {
+                    console.error('WebSocket connection error:', error);
+                    this.updateConnectionStatus('disconnected');
+                }
+            }
+
+            setupWebSocketHandlers() {
+                this.ws.onopen = () => {
+                    console.log('WebSocket connected');
+                    this.updateConnectionStatus('connected');
+                    this.reconnectAttempts = 0;
+                    
+                    // Подписываемся на обновления
+                    this.sendMessage({
+                        type: 'subscribe',
+                        subscription_type: 'metrics_update'
+                    });
+                };
+
+                this.ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        this.handleWebSocketMessage(data);
+                    } catch (error) {
+                        console.error('Error parsing WebSocket message:', error);
+                    }
+                };
+
+                this.ws.onclose = () => {
+                    console.log('WebSocket disconnected');
+                    this.updateConnectionStatus('disconnected');
+                    this.scheduleReconnect();
+                };
+
+                this.ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    this.updateConnectionStatus('disconnected');
+                };
+            }
+
+            handleWebSocketMessage(data) {
+                switch (data.type) {
+                    case 'initial':
+                        this.handleInitialData(data.data);
+                        break;
+                    case 'metrics_update':
+                        this.updateMetrics(data.data);
+                        break;
+                    case 'agents_status':
+                        this.updateAgentsStatus(data.data);
+                        break;
+                    case 'server_heartbeat':
+                        // Heartbeat received
+                        break;
+                    default:
+                        console.log('Unknown message type:', data.type);
+                }
+            }
+
+            sendMessage(message) {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify(message));
+                }
+            }
+
+            updateConnectionStatus(status) {
+                const indicator = document.getElementById('statusIndicator');
+                const statusText = document.getElementById('connectionStatus');
+                
+                indicator.className = `status-indicator status-${status}`;
+                
+                switch (status) {
+                    case 'connected':
+                        statusText.textContent = 'Подключено';
+                        break;
+                    case 'connecting':
+                        statusText.textContent = 'Подключение...';
+                        break;
+                    case 'disconnected':
+                        statusText.textContent = 'Отключено';
+                        break;
+                }
+            }
+
+            scheduleReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+                    
+                    console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts})`);
+                    this.updateConnectionStatus('connecting');
+                    
+                    setTimeout(() => {
+                        this.connectWebSocket();
+                    }, delay);
+                }
+            }
+
+            async loadInitialData() {
+                try {
+                    // Загружаем начальные данные через API
+                    const [metricsResponse, agentsResponse] = await Promise.all([
+                        fetch('/api/analytics/dashboard'),
+                        fetch('/api/agents/')
+                    ]);
+
+                    if (metricsResponse.ok) {
+                        const metricsData = await metricsResponse.json();
+                        this.updateDashboardData(metricsData.data);
+                    }
+
+                    if (agentsResponse.ok) {
+                        const agentsData = await agentsResponse.json();
+                        this.updateAgentsList(agentsData);
+                    }
+
+                } catch (error) {
+                    console.error('Error loading initial data:', error);
+                    this.showError('Ошибка загрузки данных');
+                }
+            }
+
+            updateMetrics(data) {
+                // Обновляем метрики в реальном времени
+                if (data.system) {
+                    document.getElementById('cpuUsage').textContent = `${data.system.cpu_percent.toFixed(1)}%`;
+                    document.getElementById('memoryUsage').textContent = `${data.system.memory_percent.toFixed(1)}%`;
+                }
+
+                if (data.agents) {
+                    const activeAgentsCount = Object.keys(data.agents).length;
+                    document.getElementById('activeAgents').textContent = activeAgentsCount;
+                }
+
+                if (data.http) {
+                    document.getElementById('requestsPerHour').textContent = data.http.requests_1h || 0;
+                }
+
+                // Обновляем графики
+                this.updateCharts(data);
+            }
+
+            updateCharts(data) {
+                if (!data.system) return;
+
+                const now = new Date();
+                const timeLabel = now.toLocaleTimeString();
+
+                // Обновляем график производительности
+                this.performanceChart.data.labels.push(timeLabel);
+                this.performanceChart.data.datasets[0].data.push(data.system.cpu_percent);
+                this.performanceChart.data.datasets[1].data.push(data.system.memory_percent);
+
+                // Ограничиваем количество точек на графике
+                if (this.performanceChart.data.labels.length > 20) {
+                    this.performanceChart.data.labels.shift();
+                    this.performanceChart.data.datasets[0].data.shift();
+                    this.performanceChart.data.datasets[1].data.shift();
+                }
+
+                this.performanceChart.update();
+
+                // Обновляем график агентов
+                if (data.agents) {
+                    const agentStates = { active: 0, idle: 0, error: 0 };
+                    
+                    Object.values(data.agents).forEach(agent => {
+                        if (agent.total_tasks_1h > 0) {
+                            agentStates.active++;
+                        } else if (agent.success_rate_1h < 0.8) {
+                            agentStates.error++;
+                        } else {
+                            agentStates.idle++;
+                        }
+                    });
+
+                    this.agentsChart.data.datasets[0].data = [
+                        agentStates.active,
+                        agentStates.idle,
+                        agentStates.error
+                    ];
+                    
+                    this.agentsChart.update();
+                }
+            }
+
+            updateAgentsList(agents) {
+                const agentsList = document.getElementById('agentsList');
+                
+                if (agents.length === 0) {
+                    agentsList.innerHTML = '<div class="loading">Агенты не найдены</div>';
+                    return;
+                }
+
+                const html = agents.map(agent => {
+                    const statusClass = this.getAgentStatusClass(agent.status);
+                    return `
+                        <div class="agent-item">
+                            <div class="agent-name">${agent.name}</div>
+                            <div class="agent-status ${statusClass}">${this.getAgentStatusText(agent.status)}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                agentsList.innerHTML = html;
+            }
+
+            getAgentStatusClass(status) {
+                switch (status) {
+                    case 'active': return 'status-active';
+                    case 'idle': return 'status-idle';
+                    case 'error': return 'status-error';
+                    default: return 'status-idle';
+                }
+            }
+
+            getAgentStatusText(status) {
+                switch (status) {
+                    case 'active': return 'Активен';
+                    case 'idle': return 'Ожидание';
+                    case 'error': return 'Ошибка';
+                    default: return 'Неизвестно';
+                }
+            }
+
+            updateDashboardData(data) {
+                if (data.system_health) {
+                    document.getElementById('cpuUsage').textContent = `${data.system_health.cpu_percent.toFixed(1)}%`;
+                    document.getElementById('memoryUsage').textContent = `${data.system_health.memory_percent.toFixed(1)}%`;
+                }
+
+                if (data.agents_summary) {
+                    document.getElementById('activeAgents').textContent = data.agents_summary.active_agents;
+                }
+
+                if (data.http_summary) {
+                    document.getElementById('requestsPerHour').textContent = data.http_summary.requests_1h;
+                }
+
+                // Обновляем activity feed
+                if (data.recent_activity) {
+                    this.updateActivityFeed(data.recent_activity);
+                }
+            }
+
+            updateActivityFeed(activities) {
+                const activityFeed = document.getElementById('activityFeed');
+                
+                if (activities.length === 0) {
+                    activityFeed.innerHTML = '<div class="loading">Нет активности</div>';
+                    return;
+                }
+
+                const html = activities.map(activity => {
+                    const time = new Date(activity.timestamp).toLocaleTimeString();
+                    return `
+                        <div class="activity-item">
+                            <div class="activity-time">${time}</div>
+                            <div class="activity-message">${activity.message}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                activityFeed.innerHTML = html;
+            }
+
+            showError(message) {
+                const dashboard = document.querySelector('.dashboard');
+                const alert = document.createElement('div');
+                alert.className = 'alert';
+                alert.textContent = message;
+                dashboard.insertBefore(alert, dashboard.firstChild);
+                
+                setTimeout(() => {
+                    alert.remove();
+                }, 5000);
+            }
+        }
+
+        // Инициализируем дашборд при загрузке страницы
+        document.addEventListener('DOMContentLoaded', () => {
+            new Dashboard();
+        });
+
+        // Периодически запрашиваем метрики через WebSocket
+        setInterval(() => {
+            if (window.dashboard && window.dashboard.ws && window.dashboard.ws.readyState === WebSocket.OPEN) {
+                window.dashboard.sendMessage({
+                    type: 'request_metrics'
+                });
+            }
+        }, 10000); // Каждые 10 секунд
+    </script>
+</body>
+</html>
