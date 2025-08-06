@@ -190,7 +190,13 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
         
         print(f"🔍 BD Director получил данные:")
         print(f"   Company: {company_data.get('company_name', 'N/A')}")
-        print(f"   Revenue: {company_data.get('annual_revenue', 0):,.0f} ₽")
+        # Безопасное форматирование revenue
+        revenue_raw = company_data.get('annual_revenue', 0)
+        try:
+            revenue_num = float(revenue_raw) if revenue_raw else 0
+        except (ValueError, TypeError):
+            revenue_num = 0
+        print(f"   Revenue: {revenue_num:,.0f} ₽")
         seo_spend = company_data.get('current_seo_spend', 0)
         seo_spend_num = int(seo_spend) if isinstance(seo_spend, (str, int, float)) and str(seo_spend).replace('.', '').isdigit() else 0
         print(f"   SEO Spend: {seo_spend_num:,.0f} ₽")
@@ -238,9 +244,16 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
         """
         Оценка потенциала партнерства
         """
+        # Безопасная конвертация числовых значений
+        def safe_numeric(value, default=0):
+            try:
+                return float(value) if value else default
+            except (ValueError, TypeError):
+                return default
+        
         tech_stack = company_data.get('tech_stack', [])
         existing_partnerships = company_data.get('existing_partnerships', [])
-        annual_revenue = company_data.get('annual_revenue', 0)
+        annual_revenue = safe_numeric(company_data.get('annual_revenue', 0))
         industry = company_data.get('industry', '').lower()
 
         # Базовая оценка потенциала
@@ -296,10 +309,17 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
         """
         Расчет Enterprise score с executive-level критериями  
         """
+        # Безопасная конвертация числовых значений
+        def safe_numeric(value, default=0):
+            try:
+                return float(value) if value else default
+            except (ValueError, TypeError):
+                return default
+        
         score = 0
 
         # 1. Deal Size Assessment (30% веса)
-        annual_revenue = company_data.get('annual_revenue', 0)
+        annual_revenue = safe_numeric(company_data.get('annual_revenue', 0))
         if annual_revenue >= 1000000000:  # ₽1B+ revenue
             score += 30
         elif annual_revenue >= 500000000:  # ₽500M+ revenue
@@ -349,7 +369,14 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
 
     def _classify_deal_tier(self, enterprise_score: int, company_data: Dict) -> str:
         """Классификация уровня сделки"""
-        annual_revenue = company_data.get('annual_revenue', 0)
+        # Безопасная конвертация числовых значений
+        def safe_numeric(value, default=0):
+            try:
+                return float(value) if value else default
+            except (ValueError, TypeError):
+                return default
+        
+        annual_revenue = safe_numeric(company_data.get('annual_revenue', 0))
 
         if enterprise_score >= 90 and annual_revenue >= 1000000000:
             return 'tier_1_enterprise'  # 10M ₽+ MRR potential

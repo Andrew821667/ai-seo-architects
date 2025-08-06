@@ -259,35 +259,45 @@ class ChiefSEOStrategistAgent(BaseAgent):
         """
         Оценка стратегической SEO позиции компании
         """
-        current_organic_traffic = company_data.get('monthly_organic_traffic', 0)
-        current_keywords = company_data.get('ranking_keywords_count', 0)
-        domain_authority = company_data.get('domain_authority', 0)
-        current_seo_spend = company_data.get('current_seo_spend', 0)
+        # Безопасное преобразование в числа
+        def safe_numeric(value, default=0):
+            try:
+                return float(value) if value else default
+            except (ValueError, TypeError):
+                return default
+
+        current_organic_traffic = safe_numeric(company_data.get('monthly_organic_traffic', 0))
+        current_keywords = safe_numeric(company_data.get('ranking_keywords_count', 0))
+        domain_authority = safe_numeric(company_data.get('domain_authority', 0))
+        current_seo_spend = safe_numeric(company_data.get('current_seo_spend', 0))
 
         # Strategic Position Score (0-100)
         position_score = 0
 
         # Traffic Assessment (35% веса)
-        if current_organic_traffic >= self.strategic_seo_thresholds['monthly_traffic_threshold']:
+        traffic_threshold = safe_numeric(self.strategic_seo_thresholds['monthly_traffic_threshold'])
+        if current_organic_traffic >= traffic_threshold:
             position_score += 35
         else:
-            position_score += (current_organic_traffic / self.strategic_seo_thresholds['monthly_traffic_threshold']) * 35
+            position_score += (current_organic_traffic / traffic_threshold) * 35 if traffic_threshold > 0 else 0
 
         # Keywords Portfolio Assessment (25% веса)
-        if current_keywords >= self.strategic_seo_thresholds['enterprise_keywords_min']:
+        keywords_threshold = safe_numeric(self.strategic_seo_thresholds['enterprise_keywords_min'])
+        if current_keywords >= keywords_threshold:
             position_score += 25
         else:
-            position_score += (current_keywords / self.strategic_seo_thresholds['enterprise_keywords_min']) * 25
+            position_score += (current_keywords / keywords_threshold) * 25 if keywords_threshold > 0 else 0
 
         # Authority Assessment (20% веса)
-        if domain_authority >= self.strategic_seo_thresholds['domain_authority_min']:
+        authority_threshold = safe_numeric(self.strategic_seo_thresholds['domain_authority_min'])
+        if domain_authority >= authority_threshold:
             position_score += 20
         else:
-            position_score += (domain_authority / self.strategic_seo_thresholds['domain_authority_min']) * 20
+            position_score += (domain_authority / authority_threshold) * 20 if authority_threshold > 0 else 0
 
         # Investment Maturity (20% веса)
         annual_seo_investment = current_seo_spend * 12
-        annual_revenue = company_data.get('annual_revenue', 1)
+        annual_revenue = safe_numeric(company_data.get('annual_revenue', 1))
         seo_investment_ratio = annual_seo_investment / annual_revenue
         if seo_investment_ratio >= 0.05:  # 5%+ от выручки на SEO
             position_score += 20
@@ -322,8 +332,15 @@ class ChiefSEOStrategistAgent(BaseAgent):
         industry = company_data.get('industry', '').lower()
         industry_data = self.industry_seo_benchmarks.get(industry, self.industry_seo_benchmarks['b2b_services'])
 
-        current_traffic = company_data.get('monthly_organic_traffic', 0)
-        current_conversion = company_data.get('organic_conversion_rate', 0)
+        # Безопасное преобразование в числа
+        def safe_float(value, default=0):
+            try:
+                return float(value) if value else default
+            except (ValueError, TypeError):
+                return default
+
+        current_traffic = safe_float(company_data.get('monthly_organic_traffic', 0))
+        current_conversion = safe_float(company_data.get('organic_conversion_rate', 0))
 
         # Сравнение с отраслевыми показателями
         traffic_vs_benchmark = current_traffic / industry_data['avg_organic_traffic'] if industry_data['avg_organic_traffic'] > 0 else 0
@@ -444,9 +461,16 @@ class ChiefSEOStrategistAgent(BaseAgent):
         """
         Расчет прогнозов роста SEO с учетом стратегических инвестиций
         """
-        current_traffic = company_data.get('monthly_organic_traffic', 0)
-        current_revenue = company_data.get('annual_revenue', 0)
-        current_seo_spend = company_data.get('current_seo_spend', 0) * 12  # Годовой бюджет
+        # Безопасное преобразование в числа
+        def safe_numeric(value, default=0):
+            try:
+                return float(value) if value else default
+            except (ValueError, TypeError):
+                return default
+        
+        current_traffic = safe_numeric(company_data.get('monthly_organic_traffic', 0))
+        current_revenue = safe_numeric(company_data.get('annual_revenue', 0))
+        current_seo_spend = safe_numeric(company_data.get('current_seo_spend', 0)) * 12  # Годовой бюджет
         
         # Базовые множители роста по годам
         year_multipliers = {
