@@ -1,5 +1,5 @@
 """
-Базовый класс для всех AI-агентов с поддержкой MCP (Model Context Protocol)
+Базовый класс для всех AI-агентов с поддержкой MCP (Model Context Protocol) и RAG
 """
 
 from abc import ABC, abstractmethod
@@ -61,13 +61,16 @@ class BaseAgent(ABC):
     def __init__(self, 
                  agent_id: str,
                  name: str,
+                 agent_level: str,  # executive, management, operational
                  data_provider=None,  # Может быть MockDataProvider или MCPDataProvider
                  knowledge_base: Optional[str] = None,
                  model_name: Optional[str] = None,
                  mcp_enabled: bool = False,
+                 rag_enabled: bool = True,
                  **kwargs):  # Принимаем дополнительные параметры
         self.agent_id = agent_id
         self.name = name
+        self.agent_level = agent_level
         self.data_provider = data_provider
         self.model_name = model_name or "gpt-4o-mini"
         self.knowledge_base = knowledge_base
@@ -75,6 +78,8 @@ class BaseAgent(ABC):
         self.metrics = AgentMetrics()
         self.mcp_enabled = mcp_enabled
         self.mcp_context = {}
+        self.rag_enabled = rag_enabled
+        self.knowledge_context = ""  # Контекст знаний для текущей задачи
         
         # Дополнительные параметры сохраняем в context
         self.context.update(kwargs)
@@ -82,6 +87,10 @@ class BaseAgent(ABC):
         # Инициализация MCP контекста если включен
         if self.mcp_enabled:
             self._initialize_mcp_context()
+            
+        # Инициализация RAG если включен
+        if self.rag_enabled:
+            self._initialize_rag_knowledge()
     
     @abstractmethod
     async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -138,16 +147,22 @@ class BaseAgent(ABC):
         health_status = {
             "agent_id": self.agent_id,
             "name": self.name,
+            "agent_level": self.agent_level,
             "status": "healthy",
             "model": self.model_name,
             "metrics": self.metrics.to_dict(),
-            "mcp_enabled": self.mcp_enabled
+            "mcp_enabled": self.mcp_enabled,
+            "rag_enabled": self.rag_enabled
         }
         
         # Добавляем MCP статус если включен
         if self.mcp_enabled:
             health_status["mcp_context"] = self.mcp_context
             health_status["data_provider_type"] = type(self.data_provider).__name__
+        
+        # Добавляем RAG статус если включен
+        if self.rag_enabled:
+            health_status["rag_stats"] = self.get_rag_stats()
         
         return health_status
     
@@ -277,3 +292,122 @@ class BaseAgent(ABC):
                 "status": "error",
                 "error": str(e)
             }
+    
+    def _initialize_rag_knowledge(self):
+        """Инициализация RAG базы знаний"""
+        try:
+            from knowledge.knowledge_manager import knowledge_manager
+            from core.config import config
+            
+            if not config.ENABLE_RAG:
+                self.rag_enabled = False
+                return
+                
+            # Загружаем базу знаний для данного агента
+            vector_store = knowledge_manager.load_agent_knowledge(
+                self.agent_id, 
+                self.agent_level
+            )
+            
+            if vector_store:
+                print(f"✅ RAG база знаний загружена для {self.agent_id}")
+            else:
+                print(f"⚠️ RAG база знаний не найдена для {self.agent_id}")
+                self.rag_enabled = False
+                
+        except Exception as e:
+            print(f"❌ Ошибка инициализации RAG для {self.agent_id}: {e}")
+            self.rag_enabled = False
+    
+    async def get_knowledge_context(self, query: str, k: int = None) -> str:
+        """
+        Получает релевантный контекст знаний для запроса
+        
+        Args:
+            query: Поисковый запрос
+            k: Количество результатов
+            
+        Returns:
+            str: Форматированный контекст знаний
+        """
+        if not self.rag_enabled:
+            return ""
+            
+        try:
+            from knowledge.knowledge_manager import knowledge_manager
+            
+            context = knowledge_manager.get_knowledge_context(
+                self.agent_id, 
+                query, 
+                k
+            )
+            
+            self.knowledge_context = context
+            return context
+            
+        except Exception as e:
+            print(f"⚠️ Ошибка получения контекста знаний для {self.agent_id}: {e}")
+            return ""
+    
+    def format_prompt_with_rag(self, user_prompt: str, task_data: Dict[str, Any]) -> str:
+        """
+        Форматирует промпт с учетом RAG контекста
+        
+        Args:
+            user_prompt: Основной промпт пользователя
+            task_data: Данные задачи
+            
+        Returns:
+            str: Обогащенный промпт с контекстом знаний
+        """
+        # Базовый промпт
+        enhanced_prompt = f"""
+Ты - {self.name}, специализированный AI-агент уровня {self.agent_level}.
+
+ЗАДАЧА:
+{user_prompt}
+
+ВХОДНЫЕ ДАННЫЕ:
+{task_data}
+"""
+
+        # Добавляем контекст знаний если есть
+        if self.knowledge_context:
+            enhanced_prompt += f"""
+
+КОНТЕКСТ ЗНАНИЙ (используй эту информацию для более точного ответа):
+{self.knowledge_context}
+"""
+
+        enhanced_prompt += """
+
+ИНСТРУКЦИИ:
+1. Используй контекст знаний для формирования экспертного ответа
+2. Если контекст знаний релевантен - ссылайся на него
+3. Предоставь детальный и профессиональный ответ
+4. Форматируй ответ в JSON структуре как ожидается
+
+ОТВЕТ:"""
+
+        return enhanced_prompt
+    
+    def enable_rag(self):
+        """Включение RAG для агента"""
+        self.rag_enabled = True
+        self._initialize_rag_knowledge()
+        print(f"✅ RAG включен для агента {self.agent_id}")
+    
+    def disable_rag(self):
+        """Отключение RAG для агента"""
+        self.rag_enabled = False
+        self.knowledge_context = ""
+        print(f"⚠️ RAG отключен для агента {self.agent_id}")
+    
+    def get_rag_stats(self) -> Dict[str, Any]:
+        """Получение статистики RAG"""
+        return {
+            "rag_enabled": self.rag_enabled,
+            "knowledge_context_length": len(self.knowledge_context) if self.knowledge_context else 0,
+            "agent_level": self.agent_level,
+            "knowledge_base": self.knowledge_base
+        }

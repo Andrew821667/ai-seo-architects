@@ -27,9 +27,15 @@ class AIAgentsConfig:
         self.AGENT_TIMEOUT: int = 30
         self.HEALTH_CHECK_INTERVAL: int = 60
         
-        # Конфигурация знаний
+        # Конфигурация знаний и RAG
         self.KNOWLEDGE_BASE_PATH: str = "./knowledge/"
         self.VECTOR_STORE_PATH: str = "./data/vector_stores/"
+        self.CHROMA_PERSIST_DIR: str = "./data/chroma_db/"
+        self.ENABLE_RAG: bool = True
+        self.RAG_CHUNK_SIZE: int = 1000
+        self.RAG_CHUNK_OVERLAP: int = 100
+        self.RAG_TOP_K: int = 3
+        self.RAG_SIMILARITY_THRESHOLD: float = 0.7
     
     def get_data_provider(self):
         """Создание data provider на основе конфигурации"""

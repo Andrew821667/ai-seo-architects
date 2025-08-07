@@ -112,8 +112,9 @@ class LeadQualificationAgent(BaseAgent):
     def __init__(self, data_provider=None, **kwargs):
         """Инициализация агента квалификации лидов"""
         super().__init__(
-            agent_id="lead_qualification_agent",
+            agent_id="lead_qualification",
             name="Lead Qualification Agent",
+            agent_level="operational",
             data_provider=data_provider,
             knowledge_base="knowledge/operational/lead_qualification.md",
             **kwargs
@@ -253,6 +254,15 @@ class LeadQualificationAgent(BaseAgent):
                         setattr(lead_data, field, input_data[field])
             
             logger.info(f"🔍 Начинаем квалификацию лида: {lead_data.company_name}")
+            
+            # 🧠 RAG: Получаем релевантные знания для квалификации
+            query_text = f"lead qualification {lead_data.company_name} {lead_data.industry or ''} {lead_data.company_size or ''}"
+            knowledge_context = await self.get_knowledge_context(query_text)
+            
+            if knowledge_context:
+                logger.info(f"✅ Получен контекст знаний ({len(knowledge_context)} символов) для квалификации")
+            else:
+                logger.info("⚠️ Контекст знаний не найден, используем базовую логику")
             
             # Обогащаем данные лида
             enriched_data = await self._enrich_lead_data(lead_data)
