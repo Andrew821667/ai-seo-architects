@@ -24,6 +24,8 @@ from .auth.security import get_current_user
 from .models.responses import APIResponse, HealthResponse
 from .database.connection import init_database, close_database, db_manager
 from .database.redis_client import init_redis, close_redis, redis_manager
+from .middleware.rate_limiting import RateLimitMiddleware
+from .middleware.validation import ValidationMiddleware
 from core.mcp.agent_manager import get_mcp_agent_manager
 from core.base_agent import BaseAgent
 
@@ -118,6 +120,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Rate Limiting middleware
+rate_limit_enabled = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
+if rate_limit_enabled:
+    default_limit = int(os.getenv("RATE_LIMIT_REQUESTS_PER_MINUTE", "60"))
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/1")
+    
+    app.add_middleware(
+        RateLimitMiddleware,
+        default_limit=default_limit,
+        default_window=60,  # 1 minute
+        redis_url=redis_url
+    )
+    logger.info(f"✅ Rate Limiting включен: {default_limit} запросов/минуту")
+
+# Request Validation middleware  
+validation_enabled = os.getenv("VALIDATION_ENABLED", "true").lower() == "true"
+strict_validation = os.getenv("VALIDATION_STRICT_MODE", "false").lower() == "true"
+
+if validation_enabled:
+    app.add_middleware(
+        ValidationMiddleware,
+        strict_mode=strict_validation
+    )
+    logger.info(f"✅ Request Validation включена (strict: {strict_validation})")
 
 # Статические файлы для дашборда
 static_dir = os.path.join(os.path.dirname(__file__), "static")
