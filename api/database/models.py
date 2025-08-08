@@ -112,7 +112,8 @@ class AgentTask(Base):
     campaign_id = Column(UUID(as_uuid=True), ForeignKey("ai_seo.campaigns.id", ondelete="CASCADE"), index=True, nullable=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("ai_seo.users.id", ondelete="SET NULL"), nullable=True)
     task_type = Column(String(50), nullable=False, index=True)
-    status = Column(String(20), default='pending', index=True)  # pending, in_progress, completed, failed
+    status = Column(String(20), default='pending', index=True)  # pending, in_progress, completed, failed, cancelled
+    priority = Column(String(20), default='normal', index=True)  # low, normal, high, urgent
     input_data = Column(JSONB, nullable=False)
     output_data = Column(JSONB)
     error_message = Column(Text)
@@ -248,14 +249,24 @@ class AgentTaskResponse(BaseModel):
     
     id: uuid.UUID
     agent_id: uuid.UUID
+    campaign_id: Optional[uuid.UUID] = None
+    user_id: Optional[uuid.UUID] = None
     task_type: str
     status: str
+    priority: str = 'normal'
     input_data: Dict[str, Any]
     output_data: Optional[Dict[str, Any]] = None
     error_message: Optional[str] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
     processing_time_ms: Optional[int] = None
     created_at: datetime
-    completed_at: Optional[datetime] = None
+
+
+# Псевдонимы для Task = AgentTask
+Task = AgentTask
+TaskCreate = AgentTaskCreate  
+TaskResponse = AgentTaskResponse
 
 
 # Request модели для создания записей
@@ -301,3 +312,5 @@ class AgentTaskCreate(BaseModel):
     campaign_id: Optional[uuid.UUID] = None
     task_type: str
     input_data: Dict[str, Any]
+    priority: str = 'normal'  # low, normal, high, urgent
+    metadata: Dict[str, Any] = {}

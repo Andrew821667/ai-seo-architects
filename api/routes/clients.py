@@ -1,23 +1,29 @@
 """
-API роуты для управления клиентами
+API роуты для управления клиентами с PostgreSQL интеграцией
+Реальная база данных вместо in-memory storage
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
-from typing import Dict, List, Any, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func, delete, update
+from sqlalchemy.orm import selectinload
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 import uuid
 
-from api.models.responses import (
-    APIResponse, Client, ClientTier, PaginationParams
+from api.database.connection import get_db_session
+from api.database.models import (
+    Client as ClientModel, 
+    ClientCreate, 
+    ClientResponse,
+    Campaign as CampaignModel
 )
+from api.models.responses import APIResponse
 from api.monitoring.logger import get_logger
 from core.mcp.agent_manager import get_mcp_agent_manager
 
 logger = get_logger(__name__)
 router = APIRouter()
-
-# Временное хранилище клиентов (в production будет база данных)
-clients_storage: Dict[str, Client] = {}
 
 
 async def get_agent_manager():
@@ -25,115 +31,81 @@ async def get_agent_manager():
     return await get_mcp_agent_manager()
 
 
-@router.get("/", response_model=List[Client])
+@router.get("/", response_model=List[ClientResponse])
 async def list_clients(
-    tier: Optional[ClientTier] = Query(None),
-    industry: Optional[str] = Query(None),
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100)
+    industry: Optional[str] = Query(None, description="Фильтр по отрасли"),
+    country: Optional[str] = Query(None, description="Фильтр по стране"),
+    min_revenue: Optional[int] = Query(None, description="Минимальная выручка"),
+    max_revenue: Optional[int] = Query(None, description="Максимальная выручка"),
+    page: int = Query(1, ge=1, description="Номер страницы"),
+    size: int = Query(20, ge=1, le=100, description="Размер страницы"),
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     Получить список клиентов с фильтрацией и пагинацией
+    Использует реальную PostgreSQL базу данных
     """
     try:
-        # Фильтруем клиентов
-        filtered_clients = []
+        logger.info(f"Запрос списка клиентов: industry={industry}, page={page}, size={size}")
         
-        for client in clients_storage.values():
-            # Применяем фильтры
-            if tier and client.tier != tier:
-                continue
-            if industry and client.industry.lower() != industry.lower():
-                continue
+        # Строим базовый запрос
+        query = select(ClientModel).order_by(ClientModel.created_at.desc())
+        
+        # Применяем фильтры
+        if industry:
+            query = query.where(ClientModel.industry.ilike(f"%{industry}%"))
+        
+        if country:
+            query = query.where(ClientModel.country == country)
             
-            filtered_clients.append(client)
+        if min_revenue:
+            query = query.where(ClientModel.annual_revenue >= min_revenue)
+            
+        if max_revenue:
+            query = query.where(ClientModel.annual_revenue <= max_revenue)
         
-        # Сортируем по дате создания
-        filtered_clients.sort(key=lambda x: x.created_at, reverse=True)
+        # Применяем пагинацию
+        offset = (page - 1) * size
+        query = query.offset(offset).limit(size)
         
-        # Пагинация
-        start_idx = (page - 1) * size
-        end_idx = start_idx + size
-        paginated_clients = filtered_clients[start_idx:end_idx]
+        # Выполняем запрос
+        result = await db.execute(query)
+        clients = result.scalars().all()
         
-        logger.info(f"Retrieved {len(paginated_clients)} clients", 
-                   total_clients=len(filtered_clients))
-        
-        return paginated_clients
+        logger.info(f"Найдено клиентов: {len(clients)}")
+        return clients
         
     except Exception as e:
         logger.error(f"Ошибка получения списка клиентов: {e}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения клиентов: {str(e)}")
 
 
-@router.post("/", response_model=Client)
-async def create_client(
-    client_data: Dict[str, Any],
-    background_tasks: BackgroundTasks,
-    manager = Depends(get_agent_manager)
+@router.get("/{client_id}", response_model=ClientResponse)
+async def get_client(
+    client_id: uuid.UUID,
+    include_campaigns: bool = Query(False, description="Включить кампании клиента"),
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
-    Создать нового клиента
+    Получить клиента по ID
     """
     try:
-        # Генерируем ID клиента
-        client_id = f"client_{uuid.uuid4().hex[:8]}"
+        logger.info(f"Запрос клиента: {client_id}")
         
-        # Определяем tier на основе данных
-        annual_revenue = client_data.get("annual_revenue", 0)
-        employee_count = client_data.get("employee_count", 0)
+        # Строим запрос с возможным включением кампаний
+        query = select(ClientModel).where(ClientModel.id == client_id)
         
-        if annual_revenue >= 100000000 or employee_count >= 500:  # 100M+ revenue or 500+ employees
-            tier = ClientTier.ENTERPRISE
-        elif annual_revenue >= 10000000 or employee_count >= 50:  # 10M+ revenue or 50+ employees
-            tier = ClientTier.SMB
-        else:
-            tier = ClientTier.STARTUP
+        if include_campaigns:
+            query = query.options(selectinload(ClientModel.campaigns))
         
-        # Создаем клиента
-        client = Client(
-            client_id=client_id,
-            company_name=client_data["company_name"],
-            industry=client_data["industry"],
-            tier=tier,
-            contact_email=client_data["contact_email"],
-            contact_name=client_data.get("contact_name"),
-            phone=client_data.get("phone"),
-            website=client_data.get("website"),
-            monthly_budget=client_data.get("monthly_budget"),
-            annual_revenue=annual_revenue,
-            employee_count=employee_count,
-            created_at=datetime.now().isoformat(),
-            updated_at=datetime.now().isoformat()
-        )
+        result = await db.execute(query)
+        client = result.scalar_one_or_none()
         
-        # Сохраняем клиента
-        clients_storage[client_id] = client
+        if not client:
+            raise HTTPException(status_code=404, detail="Клиент не найден")
         
-        # Запускаем квалификацию лида в фоновом режиме
-        background_tasks.add_task(qualify_new_client, client_id, client_data, manager)
-        
-        logger.info(f"Создан новый клиент: {client_id}", 
-                   company_name=client_data["company_name"],
-                   tier=tier.value)
-        
+        logger.info(f"Клиент найден: {client.company_name}")
         return client
-        
-    except Exception as e:
-        logger.error(f"Ошибка создания клиента: {e}")
-        raise HTTPException(status_code=500, detail=f"Ошибка создания клиента: {str(e)}")
-
-
-@router.get("/{client_id}", response_model=Client)
-async def get_client(client_id: str):
-    """
-    Получить информацию о конкретном клиенте
-    """
-    try:
-        if client_id not in clients_storage:
-            raise HTTPException(status_code=404, detail=f"Клиент {client_id} не найден")
-        
-        return clients_storage[client_id]
         
     except HTTPException:
         raise
@@ -142,223 +114,175 @@ async def get_client(client_id: str):
         raise HTTPException(status_code=500, detail=f"Ошибка получения клиента: {str(e)}")
 
 
-@router.put("/{client_id}", response_model=Client)
+@router.post("/", response_model=ClientResponse)
+async def create_client(
+    client_data: ClientCreate,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db_session),
+    agent_manager = Depends(get_agent_manager)
+):
+    """
+    Создать нового клиента
+    Запускает фоновую задачу анализа клиента
+    """
+    try:
+        logger.info(f"Создание клиента: {client_data.company_name}")
+        
+        # Проверяем дубликаты
+        existing_client = await db.execute(
+            select(ClientModel).where(ClientModel.company_name == client_data.company_name)
+        )
+        if existing_client.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Клиент с таким названием уже существует")
+        
+        # Создаем клиента
+        new_client = ClientModel(
+            **client_data.model_dump(),
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        
+        db.add(new_client)
+        await db.commit()
+        await db.refresh(new_client)
+        
+        # Запускаем фоновый анализ клиента
+        background_tasks.add_task(
+            analyze_new_client,
+            new_client.id,
+            agent_manager
+        )
+        
+        logger.info(f"Клиент создан: {new_client.id}")
+        return new_client
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Ошибка создания клиента: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка создания клиента: {str(e)}")
+
+
+@router.put("/{client_id}", response_model=ClientResponse)
 async def update_client(
-    client_id: str,
-    update_data: Dict[str, Any]
+    client_id: uuid.UUID,
+    client_data: ClientCreate,
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     Обновить данные клиента
     """
     try:
-        if client_id not in clients_storage:
-            raise HTTPException(status_code=404, detail=f"Клиент {client_id} не найден")
+        logger.info(f"Обновление клиента: {client_id}")
         
-        client = clients_storage[client_id]
+        # Находим клиента
+        result = await db.execute(select(ClientModel).where(ClientModel.id == client_id))
+        client = result.scalar_one_or_none()
         
-        # Обновляем разрешенные поля
-        allowed_fields = [
-            "contact_name", "contact_email", "phone", "website", 
-            "monthly_budget", "annual_revenue", "employee_count"
-        ]
+        if not client:
+            raise HTTPException(status_code=404, detail="Клиент не найден")
         
-        for field, value in update_data.items():
-            if field in allowed_fields:
-                setattr(client, field, value)
+        # Обновляем данные
+        update_data = client_data.model_dump(exclude_unset=True)
+        update_data["updated_at"] = datetime.now()
         
-        # Пересчитываем tier если изменились финансовые данные
-        if "annual_revenue" in update_data or "employee_count" in update_data:
-            annual_revenue = client.annual_revenue or 0
-            employee_count = client.employee_count or 0
-            
-            if annual_revenue >= 100000000 or employee_count >= 500:
-                client.tier = ClientTier.ENTERPRISE
-            elif annual_revenue >= 10000000 or employee_count >= 50:
-                client.tier = ClientTier.SMB
-            else:
-                client.tier = ClientTier.STARTUP
+        await db.execute(
+            update(ClientModel)
+            .where(ClientModel.id == client_id)
+            .values(**update_data)
+        )
+        await db.commit()
         
-        # Обновляем timestamp
-        client.updated_at = datetime.now().isoformat()
+        # Возвращаем обновленного клиента
+        result = await db.execute(select(ClientModel).where(ClientModel.id == client_id))
+        updated_client = result.scalar_one()
         
-        logger.info(f"Обновлен клиент: {client_id}")
-        
-        return client
+        logger.info(f"Клиент обновлен: {client_id}")
+        return updated_client
         
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Ошибка обновления клиента {client_id}: {e}")
+        await db.rollback()
         raise HTTPException(status_code=500, detail=f"Ошибка обновления клиента: {str(e)}")
 
 
 @router.delete("/{client_id}")
-async def delete_client(client_id: str):
+async def delete_client(
+    client_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db_session)
+):
     """
     Удалить клиента
     """
     try:
-        if client_id not in clients_storage:
-            raise HTTPException(status_code=404, detail=f"Клиент {client_id} не найден")
+        logger.info(f"Удаление клиента: {client_id}")
+        
+        # Проверяем существование
+        result = await db.execute(select(ClientModel).where(ClientModel.id == client_id))
+        client = result.scalar_one_or_none()
+        
+        if not client:
+            raise HTTPException(status_code=404, detail="Клиент не найден")
+        
+        # Проверяем активные кампании
+        campaigns_count = await db.execute(
+            select(func.count(CampaignModel.id))
+            .where(CampaignModel.client_id == client_id)
+            .where(CampaignModel.status.in_(["active", "draft"]))
+        )
+        
+        if campaigns_count.scalar() > 0:
+            raise HTTPException(
+                status_code=400, 
+                detail="Нельзя удалить клиента с активными кампаниями"
+            )
         
         # Удаляем клиента
-        del clients_storage[client_id]
+        await db.execute(delete(ClientModel).where(ClientModel.id == client_id))
+        await db.commit()
         
-        logger.info(f"Удален клиент: {client_id}")
-        
-        return APIResponse(
-            status="success",
-            message=f"Client {client_id} deleted successfully"
-        )
+        logger.info(f"Клиент удален: {client_id}")
+        return {"message": f"Клиент {client_id} успешно удален"}
         
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Ошибка удаления клиента {client_id}: {e}")
+        await db.rollback()
         raise HTTPException(status_code=500, detail=f"Ошибка удаления клиента: {str(e)}")
 
 
-@router.post("/{client_id}/qualify")
-async def qualify_client_lead(
-    client_id: str,
-    manager = Depends(get_agent_manager)
-):
-    """
-    Квалифицировать лид клиента
-    """
-    try:
-        if client_id not in clients_storage:
-            raise HTTPException(status_code=404, detail=f"Клиент {client_id} не найден")
-        
-        client = clients_storage[client_id]
-        
-        # Проверяем наличие агента квалификации лидов
-        if "lead_qualification" not in manager.agents:
-            raise HTTPException(status_code=503, detail="Lead Qualification Agent недоступен")
-        
-        lead_agent = manager.agents["lead_qualification"]
-        
-        # Подготавливаем данные для квалификации
-        lead_data = {
-            "company_data": {
-                "company_name": client.company_name,
-                "industry": client.industry,
-                "annual_revenue": str(client.annual_revenue) if client.annual_revenue else "unknown",
-                "employee_count": str(client.employee_count) if client.employee_count else "unknown",
-                "website_domain": client.website if client.website else "unknown",
-                "current_seo_spend": str(client.monthly_budget * 12) if client.monthly_budget else "unknown"
-            }
-        }
-        
-        # Запускаем квалификацию
-        result = await lead_agent.process_task({
-            "input_data": lead_data
-        })
-        
-        # Обновляем данные клиента на основе результатов квалификации
-        if result.get("success") and result.get("result"):
-            qualification_result = result["result"]
-            
-            # Сохраняем score и другие метрики
-            # (В реальном проекте это будет отдельная таблица lead_qualifications)
-            
-            logger.info(f"Квалификация лида завершена для клиента {client_id}",
-                       lead_score=qualification_result.get("lead_score"))
-        
-        return APIResponse(
-            status="success",
-            message=f"Lead qualification completed for client {client_id}",
-            data=result.get("result", {})
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Ошибка квалификации лида для клиента {client_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Ошибка квалификации лида: {str(e)}")
-
-
-@router.post("/{client_id}/proposal")
-async def generate_client_proposal(
-    client_id: str,
-    manager = Depends(get_agent_manager)
-):
-    """
-    Сгенерировать коммерческое предложение для клиента
-    """
-    try:
-        if client_id not in clients_storage:
-            raise HTTPException(status_code=404, detail=f"Клиент {client_id} не найден")
-        
-        client = clients_storage[client_id]
-        
-        # Проверяем наличие агента генерации предложений
-        if "proposal_generation" not in manager.agents:
-            raise HTTPException(status_code=503, detail="Proposal Generation Agent недоступен")
-        
-        proposal_agent = manager.agents["proposal_generation"]
-        
-        # Подготавливаем данные для генерации предложения
-        proposal_data = {
-            "company_data": {
-                "company_name": client.company_name,
-                "industry": client.industry,
-                "annual_revenue": str(client.annual_revenue) if client.annual_revenue else "unknown",
-                "employee_count": str(client.employee_count) if client.employee_count else "unknown",
-                "website_domain": client.website if client.website else "unknown",
-                "monthly_budget": str(client.monthly_budget) if client.monthly_budget else "unknown"
-            }
-        }
-        
-        # Генерируем предложение
-        result = await proposal_agent.process_task({
-            "input_data": proposal_data
-        })
-        
-        logger.info(f"Сгенерировано предложение для клиента {client_id}")
-        
-        return APIResponse(
-            status="success",
-            message=f"Proposal generated for client {client_id}",
-            data=result.get("result", {})
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Ошибка генерации предложения для клиента {client_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Ошибка генерации предложения: {str(e)}")
-
-
 @router.get("/{client_id}/campaigns")
-async def get_client_campaigns(client_id: str):
+async def get_client_campaigns(
+    client_id: uuid.UUID,
+    status: Optional[str] = Query(None, description="Фильтр по статусу кампании"),
+    db: AsyncSession = Depends(get_db_session)
+):
     """
     Получить кампании клиента
     """
     try:
-        if client_id not in clients_storage:
-            raise HTTPException(status_code=404, detail=f"Клиент {client_id} не найден")
+        logger.info(f"Запрос кампаний клиента: {client_id}")
         
-        # Импортируем хранилище кампаний
-        from api.routes.campaigns import campaigns_storage
+        # Проверяем существование клиента
+        client_result = await db.execute(select(ClientModel).where(ClientModel.id == client_id))
+        if not client_result.scalar_one_or_none():
+            raise HTTPException(status_code=404, detail="Клиент не найден")
         
-        # Находим кампании клиента
-        client_campaigns = [
-            campaign for campaign in campaigns_storage.values()
-            if campaign.client_id == client_id
-        ]
+        # Получаем кампании
+        query = select(CampaignModel).where(CampaignModel.client_id == client_id)
         
-        # Сортируем по дате создания
-        client_campaigns.sort(key=lambda x: x.created_at, reverse=True)
+        if status:
+            query = query.where(CampaignModel.status == status)
         
-        return APIResponse(
-            status="success",
-            message=f"Campaigns for client {client_id}",
-            data={
-                "campaigns": [campaign.dict() for campaign in client_campaigns],
-                "total_campaigns": len(client_campaigns)
-            }
-        )
+        result = await db.execute(query)
+        campaigns = result.scalars().all()
+        
+        logger.info(f"Найдено кампаний: {len(campaigns)}")
+        return campaigns
         
     except HTTPException:
         raise
@@ -367,98 +291,108 @@ async def get_client_campaigns(client_id: str):
         raise HTTPException(status_code=500, detail=f"Ошибка получения кампаний: {str(e)}")
 
 
-async def qualify_new_client(client_id: str, client_data: Dict[str, Any], manager):
+@router.get("/stats/overview")
+async def get_clients_stats(
+    db: AsyncSession = Depends(get_db_session)
+):
     """
-    Автоматическая квалификация нового клиента в фоновом режиме
-    """
-    try:
-        # Проверяем наличие агента квалификации
-        if "lead_qualification" not in manager.agents:
-            logger.warning(f"Lead Qualification Agent недоступен для клиента {client_id}")
-            return
-        
-        lead_agent = manager.agents["lead_qualification"]
-        
-        # Подготавливаем данные
-        lead_data = {
-            "company_data": {
-                "company_name": client_data["company_name"],
-                "industry": client_data["industry"],
-                "annual_revenue": str(client_data.get("annual_revenue", "unknown")),
-                "employee_count": str(client_data.get("employee_count", "unknown")),
-                "website_domain": client_data.get("website", "unknown"),
-                "current_seo_spend": str(client_data.get("monthly_budget", 0) * 12) if client_data.get("monthly_budget") else "unknown"
-            }
-        }
-        
-        # Запускаем квалификацию
-        result = await lead_agent.process_task({
-            "input_data": lead_data
-        })
-        
-        if result.get("success") and result.get("result"):
-            qualification_result = result["result"]
-            lead_score = qualification_result.get("lead_score", 0)
-            
-            logger.info(f"Автоквалификация завершена для клиента {client_id}",
-                       lead_score=lead_score,
-                       quality=qualification_result.get("lead_quality"))
-        
-    except Exception as e:
-        logger.error(f"Ошибка автоквалификации клиента {client_id}: {e}")
-
-
-@router.get("/stats/summary")
-async def get_clients_summary():
-    """
-    Получить общую статистику по всем клиентам
+    Получить общую статистику по клиентам
     """
     try:
-        total_clients = len(clients_storage)
+        logger.info("Запрос статистики клиентов")
         
-        # Подсчитываем по tier
-        tier_counts = {}
-        for tier in ClientTier:
-            tier_counts[tier.value] = 0
+        # Общее количество клиентов
+        total_clients = await db.execute(select(func.count(ClientModel.id)))
+        total_count = total_clients.scalar()
         
-        # Подсчитываем по индустриям
-        industry_counts = {}
-        total_budget = 0.0
-        total_revenue = 0.0
-        
-        for client in clients_storage.values():
-            tier_counts[client.tier.value] += 1
-            
-            # Индустрии
-            industry = client.industry.lower()
-            industry_counts[industry] = industry_counts.get(industry, 0) + 1
-            
-            # Бюджеты
-            if client.monthly_budget:
-                total_budget += client.monthly_budget * 12  # Годовой бюджет
-            
-            if client.annual_revenue:
-                total_revenue += client.annual_revenue
-        
-        # Топ-5 индустрий
-        top_industries = sorted(industry_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-        
-        summary = {
-            "total_clients": total_clients,
-            "tier_breakdown": tier_counts,
-            "top_industries": dict(top_industries),
-            "total_annual_budget": total_budget,
-            "total_client_revenue": total_revenue,
-            "average_client_value": total_budget / total_clients if total_clients > 0 else 0,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-        return APIResponse(
-            status="success",
-            message="Clients summary retrieved",
-            data=summary
+        # Статистика по отраслям
+        industry_stats = await db.execute(
+            select(ClientModel.industry, func.count(ClientModel.id))
+            .group_by(ClientModel.industry)
+            .order_by(func.count(ClientModel.id).desc())
         )
+        
+        # Статистика по странам
+        country_stats = await db.execute(
+            select(ClientModel.country, func.count(ClientModel.id))
+            .group_by(ClientModel.country)
+            .order_by(func.count(ClientModel.id).desc())
+        )
+        
+        # Средняя выручка
+        avg_revenue = await db.execute(
+            select(func.avg(ClientModel.annual_revenue))
+            .where(ClientModel.annual_revenue.is_not(None))
+        )
+        
+        stats = {
+            "total_clients": total_count,
+            "by_industry": [
+                {"industry": row[0] or "Не указано", "count": row[1]}
+                for row in industry_stats.all()
+            ],
+            "by_country": [
+                {"country": row[0], "count": row[1]}
+                for row in country_stats.all()
+            ],
+            "average_revenue": avg_revenue.scalar() or 0
+        }
+        
+        logger.info(f"Статистика получена: {total_count} клиентов")
+        return stats
         
     except Exception as e:
         logger.error(f"Ошибка получения статистики клиентов: {e}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения статистики: {str(e)}")
+
+
+async def analyze_new_client(client_id: uuid.UUID, agent_manager):
+    """
+    Фоновая задача анализа нового клиента
+    """
+    try:
+        logger.info(f"Запуск анализа клиента: {client_id}")
+        
+        # Получаем business development директора
+        bd_agent = await agent_manager.get_agent("business_development_director")
+        
+        if bd_agent:
+            # Анализируем клиента
+            analysis_result = await bd_agent.process_task({
+                "task": "analyze_new_client",
+                "client_id": str(client_id),
+                "analysis_type": "comprehensive"
+            })
+            
+            logger.info(f"Анализ клиента {client_id} завершен: {analysis_result.get('success', False)}")
+        else:
+            logger.warning(f"Business Development Director недоступен для анализа {client_id}")
+            
+    except Exception as e:
+        logger.error(f"Ошибка анализа клиента {client_id}: {e}")
+
+
+# Health check для клиентов
+@router.get("/health/clients")
+async def clients_health_check(db: AsyncSession = Depends(get_db_session)):
+    """Проверка состояния системы клиентов"""
+    try:
+        # Проверяем подключение к базе данных
+        result = await db.execute(select(func.count(ClientModel.id)))
+        clients_count = result.scalar()
+        
+        return {
+            "status": "healthy",
+            "total_clients": clients_count,
+            "timestamp": datetime.now().isoformat(),
+            "database": "connected"
+        }
+        
+    except Exception as e:
+        logger.error(f"Health check error: {e}")
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+            "database": "disconnected"
+        }

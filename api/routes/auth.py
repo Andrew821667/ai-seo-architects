@@ -5,6 +5,7 @@ API роуты для аутентификации и авторизации
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import HTTPBearer
 from typing import Dict, Any
+from datetime import datetime
 
 from api.models.responses import APIResponse, Token, User, LoginRequest
 from api.auth.security import (
@@ -26,18 +27,18 @@ async def login(login_data: LoginRequest):
     Возвращает JWT access token и refresh token
     """
     try:
-        # Аутентифицируем пользователя
-        user_data = authenticate_user(login_data.username, login_data.password)
+        # Аутентифицируем пользователя через PostgreSQL
+        user_model = await authenticate_user(login_data.username, login_data.password)
         
-        if not user_data:
+        if not user_model:
             logger.warning(f"Failed login attempt for user: {login_data.username}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username or password"
             )
         
-        # Создаем токены
-        tokens = create_user_tokens(login_data.username)
+        # Создаем токены с сохранением в Redis
+        tokens = await create_user_tokens(user_model)
         
         logger.info(f"User logged in successfully: {login_data.username}")
         
@@ -67,8 +68,8 @@ async def refresh_token(refresh_data: Dict[str, str]):
                 detail="Refresh token is required"
             )
         
-        # Получаем новый access token
-        new_access_token = refresh_access_token(refresh_token)
+        # Получаем новый access токен через Redis и PostgreSQL
+        new_access_token = await refresh_access_token(refresh_token)
         
         if not new_access_token:
             raise HTTPException(
@@ -105,7 +106,7 @@ async def logout(
         refresh_token = logout_data.get("refresh_token")
         
         if refresh_token:
-            revoked = revoke_refresh_token(refresh_token)
+            revoked = await revoke_refresh_token(refresh_token)
             if revoked:
                 logger.info(f"User logged out successfully: {current_user.username}")
             else:
@@ -147,3 +148,76 @@ async def verify_token(current_user: User = Depends(get_current_user)):
             "is_active": current_user.is_active
         }
     )
+
+
+@router.get("/health")
+async def auth_health_check():
+    """
+    Health check для authentication системы
+    Проверяет PostgreSQL и Redis connectivity
+    """
+    try:
+        from api.database.connection import get_db_connection
+        from api.database.redis_client import get_token_manager
+        from sqlalchemy import select, func
+        from api.database.models import User as UserModel
+        
+        health_status = {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "components": {}
+        }
+        
+        # Проверяем PostgreSQL
+        try:
+            async with get_db_connection() as db:
+                users_count = await db.execute(select(func.count(UserModel.id)))
+                total_users = users_count.scalar()
+                
+                active_users = await db.execute(
+                    select(func.count(UserModel.id))
+                    .where(UserModel.is_active == True)
+                )
+                
+                health_status["components"]["postgresql"] = {
+                    "status": "healthy",
+                    "total_users": total_users,
+                    "active_users": active_users.scalar()
+                }
+        except Exception as e:
+            health_status["components"]["postgresql"] = {
+                "status": "unhealthy",
+                "error": str(e)
+            }
+            health_status["status"] = "degraded"
+        
+        # Проверяем Redis
+        try:
+            token_manager = await get_token_manager()
+            redis_info = await token_manager.health_check()
+            health_status["components"]["redis"] = {
+                "status": "healthy",
+                "info": redis_info
+            }
+        except Exception as e:
+            health_status["components"]["redis"] = {
+                "status": "unhealthy", 
+                "error": str(e)
+            }
+            health_status["status"] = "degraded"
+        
+        # Общий статус
+        if all(comp.get("status") == "healthy" for comp in health_status["components"].values()):
+            health_status["status"] = "healthy"
+        elif any(comp.get("status") == "unhealthy" for comp in health_status["components"].values()):
+            health_status["status"] = "unhealthy"
+        
+        return health_status
+        
+    except Exception as e:
+        logger.error(f"Auth health check error: {e}")
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }

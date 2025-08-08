@@ -33,59 +33,6 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # HTTP Bearer схема для токенов
 security = HTTPBearer()
-users_db = {
-    "admin": {
-        "user_id": "user_admin",
-        "username": "admin",
-        "email": "admin@ai-seo-architects.com",
-        "full_name": "System Administrator",
-        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",  # secret
-        "role": "admin",
-        "permissions": [
-            "agents:read", "agents:write", "agents:delete",
-            "campaigns:read", "campaigns:write", "campaigns:delete",
-            "clients:read", "clients:write", "clients:delete",
-            "analytics:read", "system:admin"
-        ],
-        "is_active": True,
-        "created_at": "2025-01-01T00:00:00Z"
-    },
-    "manager": {
-        "user_id": "user_manager",
-        "username": "manager",
-        "email": "manager@ai-seo-architects.com",
-        "full_name": "SEO Manager",
-        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",  # secret
-        "role": "manager",
-        "permissions": [
-            "agents:read", "agents:write",
-            "campaigns:read", "campaigns:write",
-            "clients:read", "clients:write",
-            "analytics:read"
-        ],
-        "is_active": True,
-        "created_at": "2025-01-01T00:00:00Z"
-    },
-    "operator": {
-        "user_id": "user_operator",
-        "username": "operator",
-        "email": "operator@ai-seo-architects.com",
-        "full_name": "SEO Operator",
-        "hashed_password": "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",  # secret
-        "role": "operator",
-        "permissions": [
-            "agents:read",
-            "campaigns:read",
-            "clients:read",
-            "analytics:read"
-        ],
-        "is_active": True,
-        "created_at": "2025-01-01T00:00:00Z"
-    }
-}
-
-# Хранилище refresh токенов
-refresh_tokens_db = set()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -98,26 +45,51 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def authenticate_user(username: str, password: str) -> Optional[dict]:
+async def authenticate_user(username: str, password: str) -> Optional[UserModel]:
     """
-    Аутентификация пользователя
+    Аутентификация пользователя через PostgreSQL
     
     Args:
         username: Имя пользователя
         password: Пароль
         
     Returns:
-        Данные пользователя или None если аутентификация не удалась
+        Модель пользователя или None если аутентификация не удалась
     """
-    user = users_db.get(username)
-    if not user:
-        return None
-    if not verify_password(password, user["hashed_password"]):
-        return None
-    if not user["is_active"]:
-        return None
+    try:
+        from api.database.connection import get_db_connection
+        
+        async with get_db_connection() as db:
+            # Поиск пользователя в базе
+            result = await db.execute(
+                select(UserModel).where(UserModel.username == username)
+            )
+            user = result.scalar_one_or_none()
+            
+            if not user:
+                logger.debug(f"Пользователь не найден: {username}")
+                return None
+                
+            # Проверяем пароль
+            if not verify_password(password, user.password_hash):
+                logger.debug(f"Неверный пароль для: {username}")
+                return None
+                
+            # Проверяем активность аккаунта
+            if not user.is_active:
+                logger.debug(f"Неактивный аккаунт: {username}")
+                return None
+            
+            # Обновляем last_login
+            user.last_login = datetime.now()
+            await db.commit()
+            
+            logger.info(f"Успешная аутентификация: {username}")
+            return user
     
-    return user
+    except Exception as e:
+        logger.error(f"Ошибка аутентификации: {e}")
+        return None
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -144,28 +116,43 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 
-def create_refresh_token(username: str) -> str:
+async def create_refresh_token(user_id: str, username: str) -> str:
     """
-    Создать refresh токен
+    Создать refresh токен и сохранить в Redis
     
     Args:
+        user_id: ID пользователя
         username: Имя пользователя
         
     Returns:
         Refresh токен
     """
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    
-    to_encode = {
-        "sub": username,
-        "exp": expire,
-        "type": "refresh"
-    }
-    
-    refresh_token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    refresh_tokens_db.add(refresh_token)  # Сохраняем в "базе данных"
-    
-    return refresh_token
+    try:
+        expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        
+        to_encode = {
+            "sub": username,
+            "user_id": user_id,
+            "exp": expire,
+            "type": "refresh"
+        }
+        
+        refresh_token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        
+        # Сохраняем в Redis с TTL
+        token_manager = await get_token_manager()
+        await token_manager.store_refresh_token(
+            user_id=user_id,
+            refresh_token=refresh_token,
+            expires_in=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600  # секунды
+        )
+        
+        logger.debug(f"Создан refresh token для {username}")
+        return refresh_token
+        
+    except Exception as e:
+        logger.error(f"Ошибка создания refresh token: {e}")
+        raise
 
 
 def verify_token(token: str) -> Optional[dict]:
@@ -195,9 +182,9 @@ def verify_token(token: str) -> Optional[dict]:
         return None
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
     """
-    Dependency для получения текущего пользователя из JWT токена
+    Dependency для получения текущего пользователя из JWT токена через PostgreSQL
     
     Args:
         credentials: HTTP Bearer credentials
@@ -225,29 +212,33 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         if username is None:
             raise credentials_exception
             
-        user_data = users_db.get(username)
-        if user_data is None:
-            raise credentials_exception
+        # Получаем пользователя из PostgreSQL
+        from api.database.connection import get_db_connection
+        
+        async with get_db_connection() as db:
+            result = await db.execute(
+                select(UserModel).where(UserModel.username == username)
+            )
+            user_model = result.scalar_one_or_none()
             
-        # Обновляем время последнего входа
-        user_data["last_login"] = datetime.utcnow().isoformat()
-        
-        # Создаем объект пользователя
-        user = User(
-            user_id=user_data["user_id"],
-            username=user_data["username"],
-            email=user_data["email"],
-            full_name=user_data["full_name"],
-            role=user_data["role"],
-            permissions=user_data["permissions"],
-            is_active=user_data["is_active"],
-            last_login=user_data.get("last_login"),
-            created_at=user_data["created_at"]
-        )
-        
-        logger.debug(f"User authenticated: {username}", user_id=user.user_id, role=user.role)
-        
-        return user
+            if user_model is None or not user_model.is_active:
+                raise credentials_exception
+            
+            # Создаем объект пользователя для API
+            user = User(
+                user_id=str(user_model.id),
+                username=user_model.username,
+                email=user_model.email,
+                full_name=user_model.full_name,
+                role=user_model.role,
+                permissions=user_model.permissions or [],
+                is_active=user_model.is_active,
+                last_login=user_model.last_login.isoformat() if user_model.last_login else None,
+                created_at=user_model.created_at.isoformat()
+            )
+            
+            logger.debug(f"User authenticated: {username}", user_id=user.user_id, role=user.role)
+            return user
         
     except Exception as e:
         logger.error(f"Authentication error: {e}")
@@ -353,23 +344,23 @@ def require_role(required_role: str):
     return role_dependency
 
 
-def create_user_tokens(username: str) -> Token:
+async def create_user_tokens(user_model: UserModel) -> Token:
     """
     Создать токены для пользователя
     
     Args:
-        username: Имя пользователя
+        user_model: Модель пользователя из PostgreSQL
         
     Returns:
         Объект с токенами
     """
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": username}, 
+        data={"sub": user_model.username, "user_id": str(user_model.id)}, 
         expires_delta=access_token_expires
     )
     
-    refresh_token = create_refresh_token(username)
+    refresh_token = await create_refresh_token(str(user_model.id), user_model.username)
     
     return Token(
         access_token=access_token,
@@ -379,9 +370,9 @@ def create_user_tokens(username: str) -> Token:
     )
 
 
-def revoke_refresh_token(refresh_token: str) -> bool:
+async def revoke_refresh_token(refresh_token: str) -> bool:
     """
-    Отозвать refresh токен
+    Отозвать refresh токен через Redis
     
     Args:
         refresh_token: Refresh токен для отзыва
@@ -389,15 +380,30 @@ def revoke_refresh_token(refresh_token: str) -> bool:
     Returns:
         True если токен был отозван
     """
-    if refresh_token in refresh_tokens_db:
-        refresh_tokens_db.remove(refresh_token)
-        return True
-    return False
+    try:
+        # Декодируем токен чтобы получить user_id
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("user_id")
+        
+        if not user_id:
+            return False
+        
+        token_manager = await get_token_manager()
+        revoked = await token_manager.revoke_refresh_token(user_id, refresh_token)
+        
+        if revoked:
+            logger.info(f"Refresh token revoked for user {user_id}")
+        
+        return revoked
+        
+    except Exception as e:
+        logger.error(f"Ошибка отзыва refresh token: {e}")
+        return False
 
 
-def refresh_access_token(refresh_token: str) -> Optional[str]:
+async def refresh_access_token(refresh_token: str) -> Optional[str]:
     """
-    Обновить access токен используя refresh токен
+    Обновить access токен используя refresh токен через Redis и PostgreSQL
     
     Args:
         refresh_token: Refresh токен
@@ -405,38 +411,57 @@ def refresh_access_token(refresh_token: str) -> Optional[str]:
     Returns:
         Новый access токен или None если refresh токен невалидный
     """
-    if refresh_token not in refresh_tokens_db:
-        return None
-    
     try:
+        # Декодируем токен
         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
+        user_id = payload.get("user_id")
         token_type = payload.get("type")
         
-        if username is None or token_type != "refresh":
+        if username is None or user_id is None or token_type != "refresh":
             return None
         
-        # Проверяем что пользователь еще существует и активен
-        user_data = users_db.get(username)
-        if not user_data or not user_data["is_active"]:
-            # Отзываем токен если пользователь неактивен
-            revoke_refresh_token(refresh_token)
+        # Проверяем в Redis
+        token_manager = await get_token_manager()
+        is_valid = await token_manager.verify_refresh_token(user_id, refresh_token)
+        
+        if not is_valid:
+            logger.debug(f"Refresh token not found in Redis for user {user_id}")
             return None
         
-        # Создаем новый access токен
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        new_access_token = create_access_token(
-            data={"sub": username}, 
-            expires_delta=access_token_expires
-        )
+        # Проверяем пользователя в PostgreSQL
+        from api.database.connection import get_db_connection
         
-        return new_access_token
+        async with get_db_connection() as db:
+            result = await db.execute(
+                select(UserModel).where(UserModel.id == user_id)
+            )
+            user_model = result.scalar_one_or_none()
+            
+            if not user_model or not user_model.is_active:
+                logger.debug(f"User {user_id} not found or inactive")
+                # Отзываем токен если пользователь неактивен
+                await revoke_refresh_token(refresh_token)
+                return None
+            
+            # Создаем новый access токен
+            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            new_access_token = create_access_token(
+                data={"sub": username, "user_id": user_id}, 
+                expires_delta=access_token_expires
+            )
+            
+            logger.debug(f"Access token refreshed for user {username}")
+            return new_access_token
         
     except jwt.ExpiredSignatureError:
-        # Удаляем просроченный refresh токен
-        refresh_tokens_db.discard(refresh_token)
+        logger.debug(f"Expired refresh token")
         return None
-    except jwt.JWTError:
+    except jwt.JWTError as e:
+        logger.debug(f"Invalid refresh token: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Ошибка refresh access token: {e}")
         return None
 
 

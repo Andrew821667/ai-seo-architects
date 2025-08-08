@@ -178,6 +178,51 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expires ON user_sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_events_type ON analytics.system_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_events_occurred ON analytics.system_events(occurred_at);
 
+-- Инициализация базовых данных
+-- Добавление администратора системы
+INSERT INTO users (username, email, password_hash, full_name, role, is_active)
+VALUES (
+    'admin',
+    'admin@ai-seo-architects.com',
+    '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewmVgdWP0q2x3K1q', -- bcrypt hash of 'secret'
+    'System Administrator',
+    'admin',
+    true
+) ON CONFLICT (username) DO NOTHING;
+
+-- Инициализация 14 агентов системы
+INSERT INTO agents (name, agent_id, agent_level, description, knowledge_base_path, is_active, config) VALUES
+-- Executive Level (2)
+('Chief SEO Strategist', 'chief_seo_strategist', 'executive', 'Стратегическое SEO планирование и алгоритмы поисковых систем', 'knowledge/executive/chief_seo_strategist.md', true, '{"mcp_enabled": true, "specialization": "strategic_planning"}'),
+('Business Development Director', 'business_development_director', 'executive', 'Enterprise сделки 2.5M+ ₽/MRR и стратегические партнерства', 'knowledge/executive/business_development_director.md', true, '{"mcp_enabled": true, "specialization": "enterprise_sales"}'),
+
+-- Management Level (4)
+('Task Coordination Agent', 'task_coordination', 'management', 'LangGraph маршрутизация и приоритизация задач', 'knowledge/management/task_coordination_manager.md', true, '{"mcp_enabled": true, "specialization": "workflow_orchestration"}'),
+('Sales Operations Manager', 'sales_operations_manager', 'management', 'Pipeline velocity и lead scoring с A/B testing', 'knowledge/management/sales_operations_manager.md', true, '{"mcp_enabled": true, "specialization": "sales_analytics"}'),
+('Technical SEO Operations Manager', 'technical_seo_operations_manager', 'management', 'Core Web Vitals координация и log file анализ', 'knowledge/management/technical_seo_operations_manager.md', true, '{"mcp_enabled": true, "specialization": "technical_operations"}'),
+('Client Success Manager', 'client_success_manager', 'management', 'Churn prediction и upselling матрицы с QBR generation', 'knowledge/management/client_success_manager.md', true, '{"mcp_enabled": true, "specialization": "client_retention"}'),
+
+-- Operational Level (8)
+('Lead Qualification Agent', 'lead_qualification', 'operational', 'BANT/MEDDIC квалификация с ML scoring', 'knowledge/operational/lead_qualification.md', true, '{"mcp_enabled": true, "specialization": "lead_scoring"}'),
+('Proposal Generation Agent', 'proposal_generation', 'operational', 'Динамическое ценообразование и ROI калькуляции', 'knowledge/operational/proposal_generation.md', true, '{"mcp_enabled": true, "specialization": "proposal_automation"}'),
+('Sales Conversation Agent', 'sales_conversation', 'operational', 'СПИН методология B2B переговоров с российской спецификой', 'knowledge/operational/sales_conversation.md', true, '{"mcp_enabled": true, "specialization": "conversation_optimization"}'),
+('Technical SEO Auditor', 'technical_seo_auditor', 'operational', 'Комплексный технический SEO аудит и Core Web Vitals', 'knowledge/operational/technical_seo_auditor.md', true, '{"mcp_enabled": true, "specialization": "technical_analysis"}'),
+('Content Strategy Agent', 'content_strategy', 'operational', 'Keyword research и контентная стратегия с E-E-A-T оптимизацией', 'knowledge/operational/content_strategy.md', true, '{"mcp_enabled": true, "specialization": "content_optimization"}'),
+('Link Building Agent', 'link_building', 'operational', 'Outreach automation и domain authority с toxic link detection', 'knowledge/operational/link_building.md', true, '{"mcp_enabled": true, "specialization": "link_acquisition"}'),
+('Competitive Analysis Agent', 'competitive_analysis', 'operational', 'SERP analysis и share of voice с competitive gap analysis', 'knowledge/operational/competitive_analysis.md', true, '{"mcp_enabled": true, "specialization": "market_intelligence"}'),
+('Reporting Agent', 'reporting', 'operational', 'BI integration и automated insights с anomaly detection', 'knowledge/operational/reporting.md', true, '{"mcp_enabled": true, "specialization": "analytics_reporting"}')
+ON CONFLICT (agent_id) DO UPDATE SET
+    name = EXCLUDED.name,
+    description = EXCLUDED.description,
+    updated_at = CURRENT_TIMESTAMP;
+
+-- Добавление тестовых клиентов для демонстрации
+INSERT INTO clients (company_name, industry, website, annual_revenue, employee_count, country, contact_person, contact_email) VALUES
+('TechCorp Solutions', 'SaaS', 'https://techcorp-solutions.com', 50000000, 250, 'RU', 'Алексей Петров', 'a.petrov@techcorp.com'),
+('FinanceHub Ltd', 'FinTech', 'https://financehub.ru', 120000000, 450, 'RU', 'Мария Сидорова', 'm.sidorova@financehub.ru'),
+('E-Commerce Plus', 'E-Commerce', 'https://ecom-plus.ru', 25000000, 150, 'RU', 'Дмитрий Кузнецов', 'd.kuznetsov@ecom-plus.ru')
+ON CONFLICT (company_name) DO NOTHING;
+
 -- Триггер для обновления updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$

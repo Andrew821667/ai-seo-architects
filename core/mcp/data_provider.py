@@ -129,8 +129,8 @@ class MCPDataProvider:
             self.stats["errors"] += 1
             print(f"❌ Ошибка получения SEO данных через MCP: {e}")
             
-            # Fallback на mock данные
-            return self._create_fallback_seo_data(domain)
+            # Fallback на StaticDataProvider с SEO AI Models
+            return await self._get_static_seo_data(domain, parameters)
     
     async def get_client_data(self, client_id: str, parameters: Dict[str, Any] = None) -> ClientData:
         """Получение клиентских данных через MCP"""
@@ -182,7 +182,7 @@ class MCPDataProvider:
             self.stats["errors"] += 1
             print(f"❌ Ошибка получения клиентских данных через MCP: {e}")
             
-            return self._create_fallback_client_data(client_id)
+            return await self._get_static_client_data(client_id, parameters)
     
     async def get_competitive_data(self, domain: str, competitors: List[str], 
                                  parameters: Dict[str, Any] = None) -> CompetitiveData:
@@ -241,7 +241,7 @@ class MCPDataProvider:
             self.stats["errors"] += 1
             print(f"❌ Ошибка получения конкурентных данных через MCP: {e}")
             
-            return self._create_fallback_competitive_data(domain, competitors)
+            return await self._get_static_competitive_data(domain, competitors, parameters)
     
     async def search_resources(self, resource_type: MCPResourceType, 
                              search_query: str, filters: Dict[str, Any] = None) -> List[Dict[str, Any]]:
@@ -435,37 +435,70 @@ class MCPDataProvider:
             content_gaps=mcp_data.get("content_gaps", [])
         )
     
-    # Fallback методы для создания базовых данных при недоступности MCP
-    def _create_fallback_seo_data(self, domain: str) -> SEOData:
-        """Создание fallback SEO данных"""
-        
-        return SEOData(
-            domain=domain,
-            source="fallback",
-            timestamp=datetime.now(),
-            crawl_data={"status": "fallback_mode", "pages_crawled": 0},
-            confidence_score=0.3
-        )
+    # Fallback методы через StaticDataProvider с SEO AI Models
+    async def _get_static_seo_data(self, domain: str, parameters: Dict[str, Any] = None) -> SEOData:
+        """Fallback на StaticDataProvider для SEO данных"""
+        try:
+            from core.data_providers.static_provider import StaticDataProvider
+            
+            static_config = {
+                "mock_mode": False,  # Используем реальные SEO AI Models
+                "seo_ai_models_path": "./seo_ai_models/",
+                "cache_ttl_minutes": 30
+            }
+            
+            provider = StaticDataProvider(static_config)
+            return await provider.get_seo_data(domain, **(parameters or {}))
+            
+        except Exception as e:
+            print(f"⚠️ StaticDataProvider fallback error: {e}")
+            # Минимальные данные как последний fallback
+            return SEOData(
+                domain=domain,
+                source="minimal_fallback",
+                timestamp=datetime.now(),
+                crawl_data={"status": "error", "error": str(e)},
+                confidence_score=0.1
+            )
     
-    def _create_fallback_client_data(self, client_id: str) -> ClientData:
-        """Создание fallback клиентских данных"""
-        
-        return ClientData(
-            client_id=client_id,
-            source="fallback",
-            company_info={"name": f"Client {client_id}", "status": "fallback_mode"},
-            data_quality_score=0.3
-        )
+    async def _get_static_client_data(self, client_id: str, parameters: Dict[str, Any] = None) -> ClientData:
+        """Fallback на StaticDataProvider для клиентских данных"""
+        try:
+            from core.data_providers.static_provider import StaticDataProvider
+            
+            static_config = {"mock_mode": True}  # Для клиентских данных используем mock
+            provider = StaticDataProvider(static_config)
+            return await provider.get_client_data(client_id, **(parameters or {}))
+            
+        except Exception as e:
+            print(f"⚠️ StaticDataProvider fallback error: {e}")
+            return ClientData(
+                client_id=client_id,
+                source="minimal_fallback",
+                company_info={"name": f"Client {client_id}", "error": str(e)},
+                data_quality_score=0.1
+            )
     
-    def _create_fallback_competitive_data(self, domain: str, competitors: List[str]) -> CompetitiveData:
-        """Создание fallback конкурентных данных"""
-        
-        return CompetitiveData(
-            domain=domain,
-            competitors=competitors,
-            source="fallback",
-            ranking_comparison={"status": "fallback_mode"}
-        )
+    async def _get_static_competitive_data(self, domain: str, competitors: List[str], parameters: Dict[str, Any] = None) -> CompetitiveData:
+        """Fallback на StaticDataProvider для конкурентных данных"""
+        try:
+            from core.data_providers.static_provider import StaticDataProvider
+            
+            static_config = {
+                "mock_mode": False,  # Используем SEO AI Models для конкурентного анализа
+                "seo_ai_models_path": "./seo_ai_models/"
+            }
+            provider = StaticDataProvider(static_config)
+            return await provider.get_competitive_data(domain, competitors, **(parameters or {}))
+            
+        except Exception as e:
+            print(f"⚠️ StaticDataProvider fallback error: {e}")
+            return CompetitiveData(
+                domain=domain,
+                competitors=competitors,
+                source="minimal_fallback",
+                ranking_comparison={"error": str(e)}
+            )
     
     async def close(self):
         """Закрытие всех MCP соединений"""

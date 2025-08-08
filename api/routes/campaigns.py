@@ -1,25 +1,30 @@
 """
-API роуты для управления SEO кампаниями
+API роуты для управления SEO кампаниями с PostgreSQL интеграцией
+Реальная база данных вместо in-memory storage
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
-from typing import Dict, List, Any, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func, delete, update
+from sqlalchemy.orm import selectinload
+from typing import List, Any, Optional, Dict
 from datetime import datetime, timedelta
 import uuid
 
-from api.models.responses import (
-    APIResponse, Campaign, CampaignMetrics, CampaignStatus,
-    PaginationParams, CampaignFilters
+from api.database.connection import get_db_session
+from api.database.models import (
+    Campaign as CampaignModel,
+    CampaignCreate,
+    CampaignResponse,
+    CampaignMetrics as CampaignMetricsModel,
+    Client as ClientModel
 )
+from api.models.responses import APIResponse, CampaignStatus
 from api.monitoring.logger import get_logger
 from core.mcp.agent_manager import get_mcp_agent_manager
 
 logger = get_logger(__name__)
 router = APIRouter()
-
-# Временное хранилище кампаний (в production будет база данных)
-campaigns_storage: Dict[str, Campaign] = {}
-campaign_metrics_storage: Dict[str, CampaignMetrics] = {}
 
 
 async def get_agent_manager():
@@ -27,121 +32,149 @@ async def get_agent_manager():
     return await get_mcp_agent_manager()
 
 
-@router.get("/", response_model=List[Campaign])
+@router.get("/", response_model=List[CampaignResponse])
 async def list_campaigns(
-    status: Optional[List[CampaignStatus]] = Query(None),
-    client_id: Optional[str] = Query(None),
-    domain: Optional[str] = Query(None),
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100)
+    status: Optional[str] = Query(None, description="Фильтр по статусу кампании"),
+    client_id: Optional[uuid.UUID] = Query(None, description="Фильтр по клиенту"),
+    domain: Optional[str] = Query(None, description="Фильтр по домену"),
+    page: int = Query(1, ge=1, description="Номер страницы"),
+    size: int = Query(20, ge=1, le=100, description="Размер страницы"),
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     Получить список SEO кампаний с фильтрацией и пагинацией
+    Использует реальную PostgreSQL базу данных
     """
     try:
-        # Фильтруем кампании
-        filtered_campaigns = []
+        logger.info(f"Запрос списка кампаний: status={status}, client_id={client_id}")
         
-        for campaign in campaigns_storage.values():
-            # Применяем фильтры
-            if status and campaign.status not in status:
-                continue
-            if client_id and campaign.client_id != client_id:
-                continue
-            if domain and campaign.domain != domain:
-                continue
+        # Строим базовый запрос с включением клиента
+        query = select(CampaignModel).options(
+            selectinload(CampaignModel.client)
+        ).order_by(CampaignModel.created_at.desc())
+        
+        # Применяем фильтры
+        if status:
+            query = query.where(CampaignModel.status == status)
+        
+        if client_id:
+            query = query.where(CampaignModel.client_id == client_id)
             
-            filtered_campaigns.append(campaign)
+        if domain:
+            query = query.where(CampaignModel.domain.ilike(f"%{domain}%"))
         
-        # Сортируем по дате создания
-        filtered_campaigns.sort(key=lambda x: x.created_at, reverse=True)
+        # Применяем пагинацию
+        offset = (page - 1) * size
+        query = query.offset(offset).limit(size)
         
-        # Пагинация
-        start_idx = (page - 1) * size
-        end_idx = start_idx + size
-        paginated_campaigns = filtered_campaigns[start_idx:end_idx]
+        # Выполняем запрос
+        result = await db.execute(query)
+        campaigns = result.scalars().all()
         
-        logger.info(f"Retrieved {len(paginated_campaigns)} campaigns", 
-                   total_campaigns=len(filtered_campaigns))
-        
-        return paginated_campaigns
+        logger.info(f"Найдено кампаний: {len(campaigns)}")
+        return campaigns
         
     except Exception as e:
         logger.error(f"Ошибка получения списка кампаний: {e}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения кампаний: {str(e)}")
 
 
-@router.post("/", response_model=Campaign)
+@router.post("/", response_model=CampaignResponse)
 async def create_campaign(
-    campaign_data: Dict[str, Any],
+    campaign_data: CampaignCreate,
     background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db_session),
     manager = Depends(get_agent_manager)
 ):
     """
     Создать новую SEO кампанию
+    Запускает фоновую задачу назначения агентов
     """
     try:
-        # Генерируем ID кампании
-        campaign_id = f"camp_{uuid.uuid4().hex[:8]}"
+        logger.info(f"Создание кампании: {campaign_data.name}")
+        
+        # Проверяем существование клиента
+        client_result = await db.execute(
+            select(ClientModel).where(ClientModel.id == campaign_data.client_id)
+        )
+        client = client_result.scalar_one_or_none()
+        if not client:
+            raise HTTPException(status_code=404, detail="Клиент не найден")
+        
+        # Проверяем дубликаты по имени и клиенту
+        existing_campaign = await db.execute(
+            select(CampaignModel).where(
+                CampaignModel.name == campaign_data.name,
+                CampaignModel.client_id == campaign_data.client_id
+            )
+        )
+        if existing_campaign.scalar_one_or_none():
+            raise HTTPException(
+                status_code=400, 
+                detail="Кампания с таким названием уже существует для данного клиента"
+            )
         
         # Создаем кампанию
-        campaign = Campaign(
-            campaign_id=campaign_id,
-            client_id=campaign_data["client_id"],
-            name=campaign_data["name"],
-            description=campaign_data.get("description"),
-            status=CampaignStatus.DRAFT,
-            domain=campaign_data["domain"],
-            keywords=campaign_data.get("keywords", []),
-            budget=campaign_data.get("budget"),
-            start_date=campaign_data.get("start_date", datetime.now().isoformat()),
-            end_date=campaign_data.get("end_date"),
+        new_campaign = CampaignModel(
+            **campaign_data.model_dump(),
+            status="draft",
             assigned_agents=[],
-            created_at=datetime.now().isoformat(),
-            updated_at=datetime.now().isoformat()
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
         
-        # Сохраняем кампанию
-        campaigns_storage[campaign_id] = campaign
+        db.add(new_campaign)
+        await db.commit()
+        await db.refresh(new_campaign)
         
-        # Инициализируем метрики кампании
-        metrics = CampaignMetrics(
-            campaign_id=campaign_id,
-            organic_traffic=0,
-            keyword_rankings={},
-            conversion_rate=0.0,
-            roi_percentage=0.0,
-            total_leads=0,
-            qualified_leads=0,
-            revenue_attributed=0.0,
-            last_updated=datetime.now().isoformat()
+        # Запускаем фоновые задачи
+        background_tasks.add_task(
+            auto_assign_agents,
+            new_campaign.id,
+            manager
         )
-        campaign_metrics_storage[campaign_id] = metrics
         
-        # Автоматически назначаем агентов в фоновом режиме
-        background_tasks.add_task(auto_assign_agents, campaign_id, manager)
+        logger.info(f"Кампания создана: {new_campaign.id}")
+        return new_campaign
         
-        logger.info(f"Создана новая кампания: {campaign_id}", 
-                   client_id=campaign_data["client_id"],
-                   domain=campaign_data["domain"])
-        
-        return campaign
-        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Ошибка создания кампании: {e}")
+        await db.rollback()
         raise HTTPException(status_code=500, detail=f"Ошибка создания кампании: {str(e)}")
 
 
-@router.get("/{campaign_id}", response_model=Campaign)
-async def get_campaign(campaign_id: str):
+@router.get("/{campaign_id}", response_model=CampaignResponse)
+async def get_campaign(
+    campaign_id: uuid.UUID,
+    include_client: bool = Query(False, description="Включить данные клиента"),
+    include_tasks: bool = Query(False, description="Включить задачи кампании"),
+    db: AsyncSession = Depends(get_db_session)
+):
     """
     Получить информацию о конкретной кампании
     """
     try:
-        if campaign_id not in campaigns_storage:
-            raise HTTPException(status_code=404, detail=f"Кампания {campaign_id} не найдена")
+        logger.info(f"Запрос кампании: {campaign_id}")
         
-        return campaigns_storage[campaign_id]
+        # Строим запрос с опциональным включением связанных данных
+        query = select(CampaignModel).where(CampaignModel.id == campaign_id)
+        
+        if include_client:
+            query = query.options(selectinload(CampaignModel.client))
+            
+        if include_tasks:
+            query = query.options(selectinload(CampaignModel.tasks))
+        
+        result = await db.execute(query)
+        campaign = result.scalar_one_or_none()
+        
+        if not campaign:
+            raise HTTPException(status_code=404, detail="Кампания не найдена")
+        
+        logger.info(f"Кампания найдена: {campaign.name}")
+        return campaign
         
     except HTTPException:
         raise
@@ -150,81 +183,136 @@ async def get_campaign(campaign_id: str):
         raise HTTPException(status_code=500, detail=f"Ошибка получения кампании: {str(e)}")
 
 
-@router.put("/{campaign_id}", response_model=Campaign)
+@router.put("/{campaign_id}", response_model=CampaignResponse)
 async def update_campaign(
-    campaign_id: str,
-    update_data: Dict[str, Any]
+    campaign_id: uuid.UUID,
+    campaign_data: CampaignCreate,
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     Обновить данные кампании
     """
     try:
-        if campaign_id not in campaigns_storage:
-            raise HTTPException(status_code=404, detail=f"Кампания {campaign_id} не найдена")
+        logger.info(f"Обновление кампании: {campaign_id}")
         
-        campaign = campaigns_storage[campaign_id]
+        # Находим кампанию
+        result = await db.execute(
+            select(CampaignModel).where(CampaignModel.id == campaign_id)
+        )
+        campaign = result.scalar_one_or_none()
         
-        # Обновляем разрешенные поля
-        allowed_fields = ["name", "description", "status", "keywords", "budget", "end_date"]
+        if not campaign:
+            raise HTTPException(status_code=404, detail="Кампания не найдена")
         
-        for field, value in update_data.items():
-            if field in allowed_fields:
-                setattr(campaign, field, value)
+        # Проверяем, что новый клиент существует (если изменился)
+        if campaign_data.client_id != campaign.client_id:
+            client_result = await db.execute(
+                select(ClientModel).where(ClientModel.id == campaign_data.client_id)
+            )
+            if not client_result.scalar_one_or_none():
+                raise HTTPException(status_code=404, detail="Новый клиент не найден")
         
-        # Обновляем timestamp
-        campaign.updated_at = datetime.now().isoformat()
+        # Обновляем данные
+        update_data = campaign_data.model_dump(exclude_unset=True)
+        update_data["updated_at"] = datetime.now()
         
-        logger.info(f"Обновлена кампания: {campaign_id}")
+        await db.execute(
+            update(CampaignModel)
+            .where(CampaignModel.id == campaign_id)
+            .values(**update_data)
+        )
+        await db.commit()
         
-        return campaign
+        # Возвращаем обновленную кампанию
+        result = await db.execute(
+            select(CampaignModel).where(CampaignModel.id == campaign_id)
+        )
+        updated_campaign = result.scalar_one()
+        
+        logger.info(f"Кампания обновлена: {campaign_id}")
+        return updated_campaign
         
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Ошибка обновления кампании {campaign_id}: {e}")
+        await db.rollback()
         raise HTTPException(status_code=500, detail=f"Ошибка обновления кампании: {str(e)}")
 
 
 @router.delete("/{campaign_id}")
-async def delete_campaign(campaign_id: str):
+async def delete_campaign(
+    campaign_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db_session)
+):
     """
     Удалить кампанию
     """
     try:
-        if campaign_id not in campaigns_storage:
-            raise HTTPException(status_code=404, detail=f"Кампания {campaign_id} не найдена")
+        logger.info(f"Удаление кампании: {campaign_id}")
         
-        # Удаляем кампанию и её метрики
-        del campaigns_storage[campaign_id]
-        if campaign_id in campaign_metrics_storage:
-            del campaign_metrics_storage[campaign_id]
-        
-        logger.info(f"Удалена кампания: {campaign_id}")
-        
-        return APIResponse(
-            status="success",
-            message=f"Campaign {campaign_id} deleted successfully"
+        # Проверяем существование
+        result = await db.execute(
+            select(CampaignModel).where(CampaignModel.id == campaign_id)
         )
+        campaign = result.scalar_one_or_none()
+        
+        if not campaign:
+            raise HTTPException(status_code=404, detail="Кампания не найдена")
+        
+        # Проверяем, можно ли удалить кампанию (например, если она не активна)
+        if campaign.status == "active":
+            raise HTTPException(
+                status_code=400,
+                detail="Нельзя удалить активную кампанию. Сначала приостановите её."
+            )
+        
+        # Удаляем кампанию (каскадное удаление задач обрабатывается БД)
+        await db.execute(
+            delete(CampaignModel).where(CampaignModel.id == campaign_id)
+        )
+        await db.commit()
+        
+        logger.info(f"Кампания удалена: {campaign_id}")
+        return {"message": f"Кампания {campaign_id} успешно удалена"}
         
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Ошибка удаления кампании {campaign_id}: {e}")
+        await db.rollback()
         raise HTTPException(status_code=500, detail=f"Ошибка удаления кампании: {str(e)}")
 
 
-@router.get("/{campaign_id}/metrics", response_model=CampaignMetrics)
-async def get_campaign_metrics(campaign_id: str):
+@router.get("/{campaign_id}/metrics")
+async def get_campaign_metrics(
+    campaign_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db_session)
+):
     """
     Получить метрики кампании
     """
     try:
-        if campaign_id not in campaigns_storage:
-            raise HTTPException(status_code=404, detail=f"Кампания {campaign_id} не найдена")
+        logger.info(f"Запрос метрик кампании: {campaign_id}")
         
-        if campaign_id not in campaign_metrics_storage:
+        # Проверяем существование кампании
+        campaign_result = await db.execute(
+            select(CampaignModel).where(CampaignModel.id == campaign_id)
+        )
+        campaign = campaign_result.scalar_one_or_none()
+        
+        if not campaign:
+            raise HTTPException(status_code=404, detail="Кампания не найдена")
+        
+        # Ищем метрики в базе данных
+        metrics_result = await db.execute(
+            select(CampaignMetricsModel).where(CampaignMetricsModel.campaign_id == campaign_id)
+        )
+        metrics = metrics_result.scalar_one_or_none()
+        
+        if not metrics:
             # Создаем пустые метрики если их нет
-            metrics = CampaignMetrics(
+            metrics = CampaignMetricsModel(
                 campaign_id=campaign_id,
                 organic_traffic=0,
                 keyword_rankings={},
@@ -233,11 +321,15 @@ async def get_campaign_metrics(campaign_id: str):
                 total_leads=0,
                 qualified_leads=0,
                 revenue_attributed=0.0,
-                last_updated=datetime.now().isoformat()
+                last_updated=datetime.now()
             )
-            campaign_metrics_storage[campaign_id] = metrics
+            db.add(metrics)
+            await db.commit()
+            await db.refresh(metrics)
+            
+            logger.info(f"Созданы пустые метрики для кампании: {campaign_id}")
         
-        return campaign_metrics_storage[campaign_id]
+        return metrics
         
     except HTTPException:
         raise
@@ -465,3 +557,36 @@ async def get_campaigns_summary():
     except Exception as e:
         logger.error(f"Ошибка получения статистики кампаний: {e}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения статистики: {str(e)}")
+
+
+# Health check для кампаний
+@router.get("/health/campaigns")
+async def campaigns_health_check(db: AsyncSession = Depends(get_db_session)):
+    """Проверка состояния системы кампаний"""
+    try:
+        # Проверяем подключение к базе данных
+        campaigns_count = await db.execute(select(func.count(CampaignModel.id)))
+        total_campaigns = campaigns_count.scalar()
+        
+        # Активные кампании
+        active_count = await db.execute(
+            select(func.count(CampaignModel.id))
+            .where(CampaignModel.status == "active")
+        )
+        
+        return {
+            "status": "healthy",
+            "total_campaigns": total_campaigns,
+            "active_campaigns": active_count.scalar(),
+            "timestamp": datetime.now().isoformat(),
+            "database": "connected"
+        }
+        
+    except Exception as e:
+        logger.error(f"Health check error: {e}")
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+            "database": "disconnected"
+        }

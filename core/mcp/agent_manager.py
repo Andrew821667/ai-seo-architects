@@ -95,24 +95,37 @@ class MCPAgentManager:
                 self.stats["mcp_enabled_agents"] += 1
                 print(f"🔗 Агент {agent_id} будет использовать MCP провайдер")
             else:
-                # Fallback на MockDataProvider
-                from mock_data_provider import MockDataProvider
-                data_provider = MockDataProvider()
+                # Используем реальный StaticDataProvider с SEO AI Models интеграцией
+                from core.data_providers.static_provider import StaticDataProvider
+                static_config = {
+                    "mock_mode": False,  # Используем реальные SEO AI Models
+                    "seo_ai_models_path": "./seo_ai_models/",
+                    "cache_ttl_minutes": 30
+                }
+                data_provider = StaticDataProvider(static_config)
                 self.stats["fallback_agents"] += 1
-                print(f"⚠️ Агент {agent_id} будет использовать fallback провайдер")
+                print(f"📊 Агент {agent_id} будет использовать StaticDataProvider с SEO AI Models")
             
-            # Создаем агента
+            # Создаем агента с agent_level параметром
+            agent_level = self._determine_agent_level(agent_class_name)
             agent = agent_class(
                 agent_id=agent_id,
                 name=self._generate_agent_name(agent_class_name),
+                agent_level=agent_level,
                 data_provider=data_provider,
                 mcp_enabled=mcp_enabled,
                 **kwargs
             )
             
-            # Регистрируем агента
+            # Регистрируем агента в памяти
             self.agents[agent_id] = agent
             self.stats["total_agents"] += 1
+            
+            # Сохраняем агента в PostgreSQL для персистентности
+            try:
+                await self._persist_agent_to_db(agent, agent_class_name)
+            except Exception as db_error:
+                print(f"⚠️ Не удалось сохранить агента в БД: {db_error}")
             
             print(f"✅ Агент {agent_id} ({agent_class_name}) создан успешно")
             return agent
@@ -283,8 +296,12 @@ class MCPAgentManager:
                 
                 start_time = datetime.now()
                 
-                # Запускаем задачу
-                result = await agent.process_task({"input_data": test_data})
+                # Запускаем задачу с правильными данными
+                task_input = {
+                    "task_type": "comprehensive_analysis",
+                    "company_data": test_data["company_data"]
+                }
+                result = await agent.process_task(task_input)
                 
                 processing_time = (datetime.now() - start_time).total_seconds()
                 
@@ -459,6 +476,100 @@ class MCPAgentManager:
         words = re.findall(r'[A-Z][a-z]+', name)
         
         return " ".join(words) + " Agent"
+    
+    async def _persist_agent_to_db(self, agent: BaseAgent, agent_class_name: str):
+        """
+        Сохранить агента в PostgreSQL для персистентности
+        """
+        try:
+            # Динамический импорт для избежания циклических зависимостей
+            from api.database.connection import get_db_connection
+            from api.database.models import Agent as AgentModel
+            from sqlalchemy import select
+            from sqlalchemy.dialects.postgresql import insert
+            import uuid
+            
+            async with get_db_connection() as db:
+                # Проверяем существование агента
+                result = await db.execute(
+                    select(AgentModel).where(AgentModel.agent_id == agent.agent_id)
+                )
+                existing_agent = result.scalar_one_or_none()
+                
+                if existing_agent:
+                    # Обновляем существующего агента
+                    existing_agent.is_active = True
+                    existing_agent.updated_at = datetime.now()
+                    print(f"🔄 Агент {agent.agent_id} обновлен в БД")
+                else:
+                    # Создаем нового агента
+                    agent_level = self._determine_agent_level(agent_class_name)
+                    
+                    new_agent = AgentModel(
+                        id=uuid.uuid4(),
+                        name=agent.name,
+                        agent_id=agent.agent_id,
+                        agent_level=agent_level,
+                        description=f"Auto-created {agent_class_name}",
+                        is_active=True,
+                        config={
+                            "mcp_enabled": getattr(agent, 'mcp_enabled', False),
+                            "class_name": agent_class_name,
+                            "created_by_manager": True
+                        },
+                        created_at=datetime.now(),
+                        updated_at=datetime.now()
+                    )
+                    
+                    db.add(new_agent)
+                    print(f"💾 Агент {agent.agent_id} сохранен в БД")
+                
+                await db.commit()
+                
+        except Exception as e:
+            print(f"❌ Ошибка сохранения агента в БД: {e}")
+            # Не прерываем создание агента из-за проблем с БД
+    
+    def _determine_agent_level(self, agent_class_name: str) -> str:
+        """Определить уровень агента на основе его класса"""
+        
+        if any(keyword in agent_class_name for keyword in ["Chief", "Director", "Business"]):
+            return "executive"
+        elif any(keyword in agent_class_name for keyword in ["Manager", "Coordination", "Operations"]):
+            return "management"
+        else:
+            return "operational"
+    
+    async def load_agents_from_db(self) -> Dict[str, Dict]:
+        """
+        Загрузить агентов из PostgreSQL при старте
+        """
+        try:
+            from api.database.connection import get_db_connection
+            from api.database.models import Agent as AgentModel
+            from sqlalchemy import select
+            
+            async with get_db_connection() as db:
+                result = await db.execute(
+                    select(AgentModel).where(AgentModel.is_active == True)
+                )
+                db_agents = result.scalars().all()
+                
+                agent_configs = {}
+                for db_agent in db_agents:
+                    agent_configs[db_agent.agent_id] = {
+                        "name": db_agent.name,
+                        "level": db_agent.agent_level,
+                        "config": db_agent.config or {},
+                        "class_name": db_agent.config.get("class_name") if db_agent.config else None
+                    }
+                
+                print(f"📚 Загружено {len(agent_configs)} агентов из БД")
+                return agent_configs
+                
+        except Exception as e:
+            print(f"⚠️ Ошибка загрузки агентов из БД: {e}")
+            return {}
 
 # Глобальный экземпляр менеджера
 _global_manager: Optional[MCPAgentManager] = None

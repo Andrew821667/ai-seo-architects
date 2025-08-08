@@ -18,7 +18,7 @@ import os
 
 from .monitoring.logger import setup_structured_logging, get_logger
 from .monitoring.metrics import MetricsCollector, get_metrics
-from .routes import agents, campaigns, clients, analytics, auth
+from .routes import agents, campaigns, clients, analytics, auth, tasks
 from .websocket.manager import ConnectionManager
 from .auth.security import get_current_user
 from .models.responses import APIResponse, HealthResponse
@@ -57,9 +57,17 @@ async def lifespan(app: FastAPI):
         agent_manager = await get_mcp_agent_manager()
         logger.info("✅ MCP Agent Manager инициализирован")
         
-        # Создаем базовых агентов для API
+        # Создаем всех 14 агентов с MCP интеграцией
         agents = await agent_manager.create_all_agents(enable_mcp=True)
-        logger.info(f"✅ Создано {len(agents)} агентов для API")
+        
+        # Проверяем health check всех агентов
+        health_results = await agent_manager.health_check_all_agents()
+        healthy_agents = health_results.get("summary", {}).get("healthy_agents", 0)
+        
+        logger.info(f"✅ Создано {len(agents)} агентов, здоровых: {healthy_agents}")
+        
+        # Устанавливаем глобальную ссылку для доступа из API роутов
+        app.state.agent_manager = agent_manager
         
         # Запускаем сбор метрик
         asyncio.create_task(metrics_collector.start_collection())
@@ -127,14 +135,22 @@ async def health_check():
         db_healthy = await db_manager.health_check() if db_manager else False
         redis_healthy = await redis_manager.health_check() if redis_manager else False
         
-        # Проверяем состояние агент-менеджера
-        manager_healthy = agent_manager is not None
+        # Проверяем состояние агент-менеджера и MCP интеграций
+        manager_healthy = agent_manager is not None and len(agent_manager.agents) > 0
         
-        # Проверяем состояние агентов
+        # Проверяем состояние всех 14 агентов
         agents_status = {}
         if agent_manager:
-            health_results = await agent_manager.health_check_all_agents()
-            agents_status = health_results.get("summary", {})
+            try:
+                health_results = await agent_manager.health_check_all_agents()
+                agents_status = health_results.get("summary", {})
+                # Добавляем MCP статус
+                if hasattr(agent_manager, 'mcp_provider') and agent_manager.mcp_provider:
+                    mcp_health = await agent_manager.mcp_provider.health_check()
+                    agents_status['mcp_provider'] = mcp_health.get('overall_health', 'unknown')
+            except Exception as e:
+                logger.error(f"Health check agents error: {e}")
+                agents_status = {"error": str(e)}
         
         # Получаем метрики
         metrics = await metrics_collector.get_current_metrics()
@@ -276,6 +292,7 @@ app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
 app.include_router(campaigns.router, prefix="/api/campaigns", tags=["campaigns"])
 app.include_router(clients.router, prefix="/api/clients", tags=["clients"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
+app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
 
 
 # Middleware для логирования запросов
