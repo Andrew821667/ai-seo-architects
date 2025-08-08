@@ -22,6 +22,8 @@ from .routes import agents, campaigns, clients, analytics, auth
 from .websocket.manager import ConnectionManager
 from .auth.security import get_current_user
 from .models.responses import APIResponse, HealthResponse
+from .database.connection import init_database, close_database, db_manager
+from .database.redis_client import init_redis, close_redis, redis_manager
 from core.mcp.agent_manager import get_mcp_agent_manager
 from core.base_agent import BaseAgent
 
@@ -44,6 +46,13 @@ async def lifespan(app: FastAPI):
     
     global agent_manager
     try:
+        # Инициализация баз данных
+        await init_database()
+        logger.info("✅ PostgreSQL инициализирован")
+        
+        await init_redis()
+        logger.info("✅ Redis инициализирован")
+        
         # Инициализация MCP менеджера агентов
         agent_manager = await get_mcp_agent_manager()
         logger.info("✅ MCP Agent Manager инициализирован")
@@ -70,6 +79,12 @@ async def lifespan(app: FastAPI):
     if agent_manager:
         await agent_manager.shutdown()
         logger.info("✅ Agent Manager завершил работу")
+    
+    await close_redis()
+    logger.info("✅ Redis отключен")
+    
+    await close_database()
+    logger.info("✅ PostgreSQL отключен")
     
     await metrics_collector.stop_collection()
     logger.info("✅ Система метрик остановлена")
@@ -105,9 +120,13 @@ if os.path.exists(static_dir):
 # Health Check endpoint
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Проверка состояния API сервера"""
+    """Проверка состояния API сервера и инфраструктуры"""
     
     try:
+        # Проверяем состояние баз данных
+        db_healthy = await db_manager.health_check() if db_manager else False
+        redis_healthy = await redis_manager.health_check() if redis_manager else False
+        
         # Проверяем состояние агент-менеджера
         manager_healthy = agent_manager is not None
         
@@ -120,12 +139,23 @@ async def health_check():
         # Получаем метрики
         metrics = await metrics_collector.get_current_metrics()
         
+        # Определяем общий статус системы
+        overall_healthy = all([db_healthy, redis_healthy, manager_healthy])
+        status = "healthy" if overall_healthy else "degraded"
+        
+        # Добавляем информацию об инфраструктуре
+        infrastructure = {
+            "database": "healthy" if db_healthy else "unhealthy",
+            "redis": "healthy" if redis_healthy else "unhealthy",
+            "agent_manager": "healthy" if manager_healthy else "unhealthy"
+        }
+        
         return HealthResponse(
-            status="healthy" if manager_healthy else "degraded",
+            status=status,
             timestamp=datetime.now().isoformat(),
             version="1.0.0",
             agents_status=agents_status,
-            metrics=metrics,
+            metrics={**metrics, "infrastructure": infrastructure},
             uptime_seconds=metrics.get("uptime_seconds", 0)
         )
         

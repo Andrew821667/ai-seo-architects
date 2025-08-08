@@ -1,0 +1,105 @@
+# Конфигурация Prometheus для мониторинга AI SEO Architects
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'ai-seo-architects'
+    environment: 'production'
+
+# Правила для алертов
+rule_files:
+  - "rules/*.yml"
+
+# Конфигурация Alertmanager
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Targets для сбора метрик
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # AI SEO Architects API
+  - job_name: 'ai-seo-api'
+    static_configs:
+      - targets: ['ai-seo-api:8000']
+    scrape_interval: 10s
+    metrics_path: /metrics
+    scrape_timeout: 5s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+
+  # PostgreSQL метрики (через postgres_exporter)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Redis метрики (через redis_exporter)  
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Nginx метрики (через nginx_exporter)
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Node metrics (система)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # AI Agents специфичные метрики
+  - job_name: 'ai-agents-detailed'
+    static_configs:
+      - targets: ['ai-seo-api:8000']
+    scrape_interval: 5s
+    metrics_path: /api/metrics/agents
+    scrape_timeout: 3s
+    params:
+      detailed: ['true']
+
+  # Business метрики
+  - job_name: 'business-metrics'
+    static_configs:
+      - targets: ['ai-seo-api:8000']
+    scrape_interval: 60s
+    metrics_path: /api/metrics/business
+    scrape_timeout: 10s
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /prometheus
+    retention.time: 30d
+    retention.size: 10GB
+
+# Remote write configuration (для long-term storage)
+# remote_write:
+#   - url: "https://your-remote-prometheus-endpoint/api/v1/write"
+#     basic_auth:
+#       username: "username"
+#       password: "password"
+
+# Конфигурация веб-интерфейса
+web:
+  console.templates: /usr/share/prometheus/consoles
+  console.libraries: /usr/share/prometheus/console_libraries
+  enable-lifecycle: true
+  max-connections: 512

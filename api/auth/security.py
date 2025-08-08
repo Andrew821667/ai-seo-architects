@@ -1,34 +1,38 @@
 """
 Система аутентификации и авторизации для AI SEO Architects API
-JWT токены, роли пользователей, middleware для проверки доступа
+JWT токены с Redis хранением, роли пользователей, database интеграция
 """
 
 import jwt
+import os
+import hashlib
 from datetime import datetime, timedelta
 from typing import Optional, List
 from fastapi import HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
-import secrets
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
+from api.database.connection import get_db_session
+from api.database.models import User as UserModel, UserSession
+from api.database.redis_client import get_token_manager, TokenManager
 from api.models.responses import User, Token
 from api.monitoring.logger import get_logger
 
 logger = get_logger(__name__)
 
 # Конфигурация безопасности
-SECRET_KEY = secrets.token_urlsafe(32)  # В production использовать переменную окружения
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fallback_secret_key_change_in_production")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
-REFRESH_TOKEN_EXPIRE_DAYS = 7
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
 # Контекст для хеширования паролей
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # HTTP Bearer схема для токенов
 security = HTTPBearer()
-
-# Временное хранилище пользователей (в production будет база данных)
 users_db = {
     "admin": {
         "user_id": "user_admin",
