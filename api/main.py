@@ -286,6 +286,121 @@ async def websocket_dashboard(websocket: WebSocket, token: str = None):
         await connection_manager.disconnect(websocket)
 
 
+# Metrics endpoint для Prometheus
+@app.get("/metrics")
+async def prometheus_metrics():
+    \"\"\"Prometheus metrics endpoint\"\"\"
+    try:
+        # Получаем текущие метрики
+        current_metrics = await metrics_collector.get_current_metrics()
+        
+        # Конвертируем в Prometheus формат
+        metrics_lines = []
+        
+        # Системные метрики
+        system = current_metrics.get("system", {})
+        metrics_lines.extend([
+            f'# HELP system_cpu_percent Current CPU usage percentage',
+            f'# TYPE system_cpu_percent gauge',
+            f'system_cpu_percent {system.get("cpu_percent", 0)}',
+            f'',
+            f'# HELP system_memory_percent Current memory usage percentage', 
+            f'# TYPE system_memory_percent gauge',
+            f'system_memory_percent {system.get("memory_percent", 0)}',
+            f'',
+            f'# HELP system_active_connections Current active connections',
+            f'# TYPE system_active_connections gauge', 
+            f'system_active_connections {system.get("active_connections", 0)}',
+            f''
+        ])
+        
+        # HTTP метрики
+        http = current_metrics.get("http", {})
+        metrics_lines.extend([
+            f'# HELP http_requests_total Total HTTP requests',
+            f'# TYPE http_requests_total counter',
+            f'http_requests_total {http.get("total_requests_lifetime", 0)}',
+            f'',
+            f'# HELP http_errors_total Total HTTP errors',
+            f'# TYPE http_errors_total counter', 
+            f'http_errors_total {http.get("total_errors_lifetime", 0)}',
+            f'',
+            f'# HELP http_request_duration_seconds Average HTTP request duration',
+            f'# TYPE http_request_duration_seconds gauge',
+            f'http_request_duration_seconds {http.get("avg_response_time_1h", 0)}',
+            f''
+        ])
+        
+        # Метрики агентов
+        agents = current_metrics.get("agents", {})
+        for agent_id, agent_stats in agents.items():
+            metrics_lines.extend([
+                f'# HELP agent_tasks_total Total tasks processed by agent',
+                f'# TYPE agent_tasks_total counter',
+                f'agent_tasks_total{{agent_id=\"{agent_id}\"}} {agent_stats.get("total_tasks_1h", 0)}',
+                f'',
+                f'# HELP agent_success_rate Success rate of agent tasks',
+                f'# TYPE agent_success_rate gauge',
+                f'agent_success_rate{{agent_id=\"{agent_id}\"}} {agent_stats.get("success_rate_1h", 0)}',
+                f'',
+                f'# HELP agent_task_duration_seconds Average task duration',
+                f'# TYPE agent_task_duration_seconds gauge', 
+                f'agent_task_duration_seconds{{agent_id=\"{agent_id}\"}} {agent_stats.get("avg_duration_1h", 0)}',
+                f''
+            ])
+        
+        return \"\\n\".join(metrics_lines)
+        
+    except Exception as e:
+        logger.error(f\"Metrics endpoint error: {e}\")
+        return \"# Error generating metrics\"
+
+# API метрики endpoints
+@app.get(\"/api/metrics/system\")
+async def get_system_metrics():
+    \"\"\"Получить системные метрики\"\"\"
+    try:
+        metrics = await metrics_collector.get_current_metrics()
+        return {
+            \"status\": \"success\",
+            \"data\": metrics.get(\"system\", {}),
+            \"timestamp\": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f\"System metrics error: {e}\")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get(\"/api/metrics/agents\")
+async def get_agents_metrics():
+    \"\"\"Получить метрики агентов\"\"\"
+    try:
+        metrics = await metrics_collector.get_current_metrics()
+        return {
+            \"status\": \"success\",
+            \"data\": metrics.get(\"agents\", {}),
+            \"timestamp\": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f\"Agents metrics error: {e}\")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get(\"/api/metrics/detailed\")
+async def get_detailed_metrics(hours: int = 1):
+    \"\"\"Получить детальные метрики за период\"\"\"
+    try:
+        if hours > 24:
+            hours = 24  # Максимум 24 часа
+        
+        detailed_metrics = await metrics_collector.get_detailed_metrics(hours)
+        return {
+            \"status\": \"success\",
+            \"data\": detailed_metrics,
+            \"timestamp\": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f\"Detailed metrics error: {e}\")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Подключение роутеров
 app.include_router(auth.router, prefix="/auth", tags=["authentication"])
 app.include_router(agents.router, prefix="/api/agents", tags=["agents"])

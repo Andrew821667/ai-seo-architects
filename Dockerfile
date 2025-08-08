@@ -20,6 +20,9 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     curl \
+    wget \
+    build-essential \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Создаем рабочую директорию
@@ -36,7 +39,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Создаем необходимые директории
-RUN mkdir -p logs exports && \
+RUN mkdir -p logs exports data/vector_stores data/chroma_db data/faiss_indexes && \
     chown -R appuser:appuser /app
 
 # Переключаемся на непривилегированного пользователя

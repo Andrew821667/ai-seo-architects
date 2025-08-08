@@ -8,6 +8,10 @@ import uvicorn
 import sys
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Загружаем переменные окружения из .env файла
+load_dotenv()
 
 # Добавляем корневую директорию в PATH
 project_root = Path(__file__).parent
@@ -16,17 +20,24 @@ sys.path.insert(0, str(project_root))
 def run_development():
     """Запуск в режиме разработки"""
     print("🚀 Запуск AI SEO Architects API в режиме разработки...")
-    print("📊 Dashboard: http://localhost:8000/dashboard")
-    print("📚 API Docs: http://localhost:8000/api/docs")
-    print("🔍 Health: http://localhost:8000/health")
+    
+    # Получаем настройки из environment variables
+    host = os.getenv("API_HOST", "0.0.0.0")
+    port = int(os.getenv("API_PORT", "8000"))
+    log_level = os.getenv("LOG_LEVEL", "info").lower()
+    
+    print(f"📊 Dashboard: http://{host}:{port}/dashboard")
+    print(f"📚 API Docs: http://{host}:{port}/api/docs") 
+    print(f"🔍 Health: http://{host}:{port}/health")
+    print(f"📈 Metrics: http://{host}:{port}/metrics")
     print()
     
     uvicorn.run(
         "api.main:app",
-        host="0.0.0.0",
-        port=8000,
+        host=host,
+        port=port,
         reload=True,
-        log_level="info",
+        log_level=log_level,
         reload_dirs=[str(project_root)],
         reload_includes=["*.py"],
         access_log=True
@@ -37,13 +48,26 @@ def run_production():
     """Запуск в production режиме"""
     print("🏭 Запуск AI SEO Architects API в production режиме...")
     
+    # Получаем настройки из environment variables
+    host = os.getenv("API_HOST", "0.0.0.0")
+    port = int(os.getenv("API_PORT", "8000"))
+    log_level = os.getenv("LOG_LEVEL", "warning").lower()
+    workers = int(os.getenv("API_WORKERS", "4"))
+    
+    print(f"🌐 API Server: http://{host}:{port}")
+    print(f"⚙️ Workers: {workers}")
+    print(f"📊 Log Level: {log_level}")
+    print()
+    
     uvicorn.run(
         "api.main:app",
-        host="0.0.0.0",
-        port=8000,
-        workers=4,
-        log_level="warning",
-        access_log=False
+        host=host,
+        port=port,
+        workers=workers,
+        log_level=log_level,
+        access_log=False,
+        server_header=False,
+        date_header=False
     )
 
 

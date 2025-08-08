@@ -10,11 +10,20 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - DATABASE_URL=postgresql+asyncpg://ai_seo_user:${POSTGRES_PASSWORD:-secure_password_change_me}@postgres:5432/ai_seo_architects
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-super-secret-jwt-key-change-this-in-production}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - ENVIRONMENT=production
+      - API_HOST=0.0.0.0
       - API_PORT=8000
       - MCP_ENABLED=true
-      - MCP_CACHE_TTL=30
-      - MCP_ENABLE_FALLBACK=true
+      - MCP_CACHE_TTL_MINUTES=30
+      - SEO_AI_MODELS_MOCK_MODE=false
+      - LOG_LEVEL=INFO
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:8080
+      - PROMETHEUS_ENABLED=true
     volumes:
       - ./logs:/app/logs
       - ./exports:/app/exports
