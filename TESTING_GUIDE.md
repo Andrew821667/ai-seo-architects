@@ -86,10 +86,11 @@ https://colab.research.google.com/
 !git clone https://github.com/Andrew821667/ai-seo-architects.git
 %cd ai-seo-architects
 
-# Установка зависимостей
-!pip install -q fastapi uvicorn websockets python-jose[cryptography] 
-!pip install -q python-multipart pydantic psutil langchain openai
-!pip install -q langraph langgraph-checkpoint aiofiles
+# Установка минимальных зависимостей для Colab
+!pip install -q fastapi uvicorn[standard] websockets 
+!pip install -q python-multipart pydantic python-jose[cryptography]
+!pip install -q nest-asyncio pyngrok requests httpx
+!pip install -q python-dotenv aiofiles
 
 print("✅ Все зависимости установлены")
 ```
@@ -182,6 +183,15 @@ print(f"🎛️ Откройте Dashboard: {public_url}/dashboard")
 - **Ngrok tunnel** может периодически обновляться
 - **Restart Runtime** потребует повторной установки
 - **Файлы не сохраняются** после закрытия сессии
+- **Mock режим** - некоторые компоненты (PostgreSQL, Redis) работают в fallback режиме
+- **Ограниченный функционал** - полные возможности доступны только при локальном/VPS развертывании
+
+### ✅ **Исправленные проблемы (обновление от 11 августа 2025):**
+- **Синтаксические ошибки** в `api/main.py` (кавычки f-строк)
+- **Pydantic v2 совместимость** - исправлен `regex` → `pattern`, `BaseSettings` импорт
+- **SQLAlchemy совместимость** - исправлено reserved поле `metadata` → `client_metadata`
+- **Fallback системы** для отсутствующих библиотек (psutil, redis, jwt, passlib, bleach)
+- **Импорт ошибки** - добавлены try/catch блоки для всех опциональных зависимостей
 
 ---
 

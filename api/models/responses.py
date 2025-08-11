@@ -271,7 +271,7 @@ class PaginationParams(BaseModel):
     page: int = Field(1, ge=1, description="Номер страницы")
     size: int = Field(20, ge=1, le=100, description="Размер страницы")
     sort_by: Optional[str] = Field(None, description="Поле для сортировки")
-    sort_order: Optional[str] = Field("asc", regex="^(asc|desc)$", description="Порядок сортировки")
+    sort_order: Optional[str] = Field("asc", pattern="^(asc|desc)$", description="Порядок сортировки")
 
 
 class PaginatedResponse(BaseModel):

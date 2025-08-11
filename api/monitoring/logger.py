@@ -9,7 +9,44 @@ import sys
 from datetime import datetime
 from typing import Dict, Any, Optional
 from contextvars import ContextVar
-from pythonjsonlogger import jsonlogger
+try:
+    from pythonjsonlogger import jsonlogger
+except ImportError:
+    # Fallback для случаев когда pythonjsonlogger не установлен
+    import json
+    import logging
+    
+    class CustomJsonFormatter(logging.Formatter):
+        def format(self, record):
+            log_obj = {
+                'timestamp': datetime.fromtimestamp(record.created).isoformat(),
+                'level': record.levelname,
+                'logger': record.name,
+                'message': record.getMessage(),
+                'service': 'ai-seo-architects-api',
+                'pid': os.getpid(),
+            }
+            
+            # Добавляем дополнительные поля если есть
+            if hasattr(record, 'correlation_id'):
+                log_obj['correlation_id'] = record.correlation_id
+            if hasattr(record, 'user_id'):
+                log_obj['user_id'] = record.user_id
+            if hasattr(record, 'endpoint'):
+                log_obj['endpoint'] = record.endpoint
+            if hasattr(record, 'method'):
+                log_obj['method'] = record.method
+            if hasattr(record, 'status_code'):
+                log_obj['status_code'] = record.status_code
+            if hasattr(record, 'processing_time_seconds'):
+                log_obj['processing_time_seconds'] = record.processing_time_seconds
+                
+            return json.dumps(log_obj, ensure_ascii=False)
+    
+    # Создаем алиас для совместимости
+    jsonlogger = type('jsonlogger', (), {
+        'JsonFormatter': CustomJsonFormatter
+    })()
 import uuid
 import os
 from pathlib import Path

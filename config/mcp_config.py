@@ -5,10 +5,18 @@ MCP Configuration для AI SEO Architects
 
 import os
 from typing import Dict, Any
-from pydantic import BaseSettings, Field
+try:
+    from pydantic_settings import BaseSettings
+    from pydantic import Field
+except ImportError:
+    # Fallback для случаев когда pydantic-settings не установлен
+    from pydantic import BaseModel, Field
+    BaseSettings = BaseModel
 
 class MCPSettings(BaseSettings):
     """MCP настройки с валидацией через Pydantic"""
+    
+    model_config = {"extra": "ignore"}  # Игнорируем дополнительные поля
     
     # Основные настройки
     mcp_enabled: bool = Field(default=True, env='MCP_ENABLED')
@@ -51,9 +59,6 @@ class MCPSettings(BaseSettings):
     enable_metrics: bool = Field(default=True, env='MCP_ENABLE_METRICS')
     metrics_export_interval: int = Field(default=60, env='MCP_METRICS_INTERVAL')
     
-    class Config:
-        env_file = '.env'
-        case_sensitive = False
 
 def create_mcp_config(settings: MCPSettings = None) -> Dict[str, Any]:
     """

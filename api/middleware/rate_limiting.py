@@ -8,7 +8,49 @@ import json
 from typing import Dict, Any, Optional, Callable
 from fastapi import Request, HTTPException, status
 from fastapi.responses import JSONResponse
-import redis.asyncio as redis
+try:
+    import redis.asyncio as redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
+    # Mock Redis 
+    class MockRedis:
+        def __init__(self, *args, **kwargs):
+            self._data = {}
+        
+        async def zadd(self, key: str, mapping: dict):
+            if key not in self._data:
+                self._data[key] = []
+            for value, score in mapping.items():
+                self._data[key].append((score, value))
+            return len(mapping)
+        
+        async def zremrangebyscore(self, key: str, min_score: float, max_score: float):
+            if key not in self._data:
+                return 0
+            count = 0
+            self._data[key] = [(score, value) for score, value in self._data[key] 
+                             if not (min_score <= score <= max_score)]
+            return count
+        
+        async def zcard(self, key: str):
+            return len(self._data.get(key, []))
+        
+        async def expire(self, key: str, seconds: int):
+            return True
+        
+        async def pipeline(self):
+            return MockRedisPipeline()
+        
+        @staticmethod
+        def from_url(url: str, **kwargs):
+            return MockRedis()
+    
+    class MockRedisPipeline:
+        async def execute(self):
+            return []
+    
+    redis = MockRedis
 import hashlib
 
 from ..monitoring.logger import get_logger

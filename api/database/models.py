@@ -73,7 +73,7 @@ class Client(Base):
     contact_phone = Column(String(20))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    metadata = Column(JSONB, default={})
+    client_metadata = Column(JSONB, default={})
     
     # Relationships
     campaigns = relationship("Campaign", back_populates="client")
@@ -139,7 +139,7 @@ class AgentMetric(Base):
     metric_value = Column(DECIMAL(10, 4))
     metric_unit = Column(String(20))
     recorded_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
-    metadata = Column(JSONB, default={})
+    client_metadata = Column(JSONB, default={})
     
     # Relationships
     agent = relationship("Agent", back_populates="metrics")
@@ -265,8 +265,6 @@ class AgentTaskResponse(BaseModel):
 
 # Псевдонимы для Task = AgentTask
 Task = AgentTask
-TaskCreate = AgentTaskCreate  
-TaskResponse = AgentTaskResponse
 
 
 # Request модели для создания записей

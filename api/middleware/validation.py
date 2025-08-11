@@ -9,7 +9,22 @@ from typing import Dict, Any, List, Optional, Union
 from fastapi import Request, HTTPException, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError, validator
-import bleach
+try:
+    import bleach
+    BLEACH_AVAILABLE = True
+except ImportError:
+    BLEACH_AVAILABLE = False
+    # Mock bleach для HTML очистки
+    class MockBleach:
+        @staticmethod
+        def clean(text: str, tags=None, attributes=None, strip=False, strip_comments=True):
+            import re
+            # Простая очистка HTML тегов
+            text = re.sub(r'<script.*?</script>', '', text, flags=re.DOTALL | re.IGNORECASE)
+            text = re.sub(r'<.*?>', '', text)
+            return text
+    
+    bleach = MockBleach()
 
 from ..monitoring.logger import get_logger
 

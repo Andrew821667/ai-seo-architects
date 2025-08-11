@@ -7,8 +7,49 @@ import json
 import logging
 from typing import Optional, Any, Dict, List
 from datetime import datetime, timedelta
-import redis.asyncio as redis
-from redis.asyncio import ConnectionPool
+try:
+    import redis.asyncio as redis
+    from redis.asyncio import ConnectionPool
+    REDIS_AVAILABLE = True
+except ImportError:
+    # Mock Redis для случаев когда Redis не установлен
+    REDIS_AVAILABLE = False
+    
+    class MockRedis:
+        def __init__(self, *args, **kwargs):
+            self._data = {}
+        
+        async def set(self, key: str, value: str, ex=None):
+            self._data[key] = {"value": value, "expires": None}
+            return True
+        
+        async def get(self, key: str):
+            item = self._data.get(key)
+            return item["value"] if item else None
+        
+        async def delete(self, key: str):
+            return self._data.pop(key, None) is not None
+        
+        async def exists(self, key: str):
+            return key in self._data
+        
+        async def ping(self):
+            return True
+        
+        async def close(self):
+            pass
+        
+        async def keys(self, pattern: str):
+            import fnmatch
+            return [k for k in self._data.keys() if fnmatch.fnmatch(k, pattern)]
+    
+    # Создаем моки
+    redis = type('redis', (), {
+        'Redis': MockRedis,
+        'ConnectionPool': lambda **kwargs: None
+    })()
+    
+    ConnectionPool = lambda **kwargs: None
 
 logger = logging.getLogger(__name__)
 

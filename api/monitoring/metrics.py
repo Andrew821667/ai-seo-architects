@@ -5,7 +5,24 @@
 
 import asyncio
 import time
-import psutil
+try:
+    import psutil
+except ImportError:
+    # Fallback для случаев когда psutil не установлен
+    class MockPsutil:
+        @staticmethod
+        def cpu_percent():
+            return 0.0
+        
+        @staticmethod
+        def virtual_memory():
+            return type('Memory', (), {'percent': 0.0})()
+        
+        @staticmethod
+        def net_connections():
+            return []
+    
+    psutil = MockPsutil()
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field

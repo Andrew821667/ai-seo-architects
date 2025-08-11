@@ -16,7 +16,6 @@ from api.database.models import (
     Campaign as CampaignModel,
     CampaignCreate,
     CampaignResponse,
-    CampaignMetrics as CampaignMetricsModel,
     Client as ClientModel
 )
 from api.models.responses import APIResponse, CampaignStatus

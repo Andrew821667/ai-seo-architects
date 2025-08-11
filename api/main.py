@@ -316,7 +316,7 @@ async def websocket_dashboard(websocket: WebSocket, token: str = None):
 # Metrics endpoint для Prometheus
 @app.get("/metrics")
 async def prometheus_metrics():
-    \"\"\"Prometheus metrics endpoint\"\"\"
+    """Prometheus metrics endpoint"""
     try:
         # Получаем текущие метрики
         current_metrics = await metrics_collector.get_current_metrics()
@@ -376,56 +376,56 @@ async def prometheus_metrics():
                 f''
             ])
         
-        return \"\\n\".join(metrics_lines)
+        return "\n".join(metrics_lines)
         
     except Exception as e:
-        logger.error(f\"Metrics endpoint error: {e}\")
-        return \"# Error generating metrics\"
+        logger.error(f"Metrics endpoint error: {e}")
+        return "# Error generating metrics"
 
 # API метрики endpoints
-@app.get(\"/api/metrics/system\")
+@app.get("/api/metrics/system")
 async def get_system_metrics():
-    \"\"\"Получить системные метрики\"\"\"
+    """Получить системные метрики"""
     try:
         metrics = await metrics_collector.get_current_metrics()
         return {
-            \"status\": \"success\",
-            \"data\": metrics.get(\"system\", {}),
-            \"timestamp\": datetime.now().isoformat()
+            "status": "success",
+            "data": metrics.get("system", {}),
+            "timestamp": datetime.now().isoformat()
         }
     except Exception as e:
-        logger.error(f\"System metrics error: {e}\")
+        logger.error(f"System metrics error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get(\"/api/metrics/agents\")
+@app.get("/api/metrics/agents")
 async def get_agents_metrics():
-    \"\"\"Получить метрики агентов\"\"\"
+    """Получить метрики агентов"""
     try:
         metrics = await metrics_collector.get_current_metrics()
         return {
-            \"status\": \"success\",
-            \"data\": metrics.get(\"agents\", {}),
-            \"timestamp\": datetime.now().isoformat()
+            "status": "success",
+            "data": metrics.get("agents", {}),
+            "timestamp": datetime.now().isoformat()
         }
     except Exception as e:
-        logger.error(f\"Agents metrics error: {e}\")
+        logger.error(f"Agents metrics error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get(\"/api/metrics/detailed\")
+@app.get("/api/metrics/detailed")
 async def get_detailed_metrics(hours: int = 1):
-    \"\"\"Получить детальные метрики за период\"\"\"
+    """Получить детальные метрики за период"""
     try:
         if hours > 24:
             hours = 24  # Максимум 24 часа
         
         detailed_metrics = await metrics_collector.get_detailed_metrics(hours)
         return {
-            \"status\": \"success\",
-            \"data\": detailed_metrics,
-            \"timestamp\": datetime.now().isoformat()
+            "status": "success",
+            "data": detailed_metrics,
+            "timestamp": datetime.now().isoformat()
         }
     except Exception as e:
-        logger.error(f\"Detailed metrics error: {e}\")
+        logger.error(f"Detailed metrics error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Подключение роутеров
