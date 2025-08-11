@@ -49,7 +49,12 @@ except ImportError:
         'ConnectionPool': lambda **kwargs: None
     })()
     
-    ConnectionPool = lambda **kwargs: None
+    class MockConnectionPool:
+        @staticmethod
+        def from_url(url: str, **kwargs):
+            return MockConnectionPool()
+    
+    ConnectionPool = MockConnectionPool
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +70,14 @@ class RedisManager:
     async def initialize(self, redis_url: str = None):
         """Инициализация подключения к Redis"""
         if self._initialized:
+            return
+            
+        if not REDIS_AVAILABLE:
+            logger.warning("Redis недоступен, используем mock Redis")
+            # Используем mock версию
+            self.connection_pool = ConnectionPool.from_url("")
+            self.redis_client = MockRedis()
+            self._initialized = True
             return
             
         # Получение URL Redis
@@ -110,6 +123,10 @@ class RedisManager:
         try:
             if not self._initialized:
                 return False
+            
+            if not REDIS_AVAILABLE:
+                # Mock Redis всегда "здоров"
+                return True
                 
             result = await self.redis_client.ping()
             return result is True

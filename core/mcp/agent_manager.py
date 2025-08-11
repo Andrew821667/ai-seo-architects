@@ -108,11 +108,14 @@ class MCPAgentManager:
             
             # Создаем агента с agent_level параметром
             agent_level = self._determine_agent_level(agent_class_name)
+            
+            # Убираем agent_id из kwargs если он там есть (чтобы избежать конфликта)
+            if 'agent_id' in kwargs:
+                del kwargs['agent_id']
+            
             agent = agent_class(
-                agent_id=agent_id,
-                name=self._generate_agent_name(agent_class_name),
-                agent_level=agent_level,
                 data_provider=data_provider,
+                agent_level=agent_level,
                 mcp_enabled=mcp_enabled,
                 **kwargs
             )

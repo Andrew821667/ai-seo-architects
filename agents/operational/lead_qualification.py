@@ -109,12 +109,16 @@ class QualificationResult(BaseModel):
 class LeadQualificationAgent(BaseAgent):
     """Агент квалификации лидов с comprehensive функциональностью"""
     
-    def __init__(self, data_provider=None, **kwargs):
+    def __init__(self, data_provider=None, agent_level=None, **kwargs):
         """Инициализация агента квалификации лидов"""
+        # Убираем agent_level из kwargs если он там есть
+        if 'agent_level' in kwargs:
+            del kwargs['agent_level']
+            
         super().__init__(
             agent_id="lead_qualification",
             name="Lead Qualification Agent",
-            agent_level="operational",
+            agent_level=agent_level or "operational",
             data_provider=data_provider,
             knowledge_base="knowledge/operational/lead_qualification.md",
             **kwargs
