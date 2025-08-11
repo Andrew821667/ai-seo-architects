@@ -214,3 +214,9 @@ async def init_database():
 async def close_database():
     """Закрытие базы данных при остановке приложения"""
     await db_manager.close()
+
+
+async def get_db_connection():
+    """Получение подключения к базе данных (legacy совместимость)"""
+    async for session in db_manager.get_session():
+        yield session
