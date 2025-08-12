@@ -5,6 +5,8 @@ Rate Limiting middleware для AI SEO Architects API
 
 import time
 import json
+import asyncio
+import hashlib
 from typing import Dict, Any, Optional, Callable
 from fastapi import Request, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -189,7 +191,10 @@ class RateLimitMiddleware:
         request = Request(scope, receive)
         
         # Получаем ключ для rate limiting
-        rate_key = await self.key_func(request)
+        if asyncio.iscoroutinefunction(self.key_func):
+            rate_key = await self.key_func(request)
+        else:
+            rate_key = self.key_func(request)
         
         # Определяем лимиты для текущего endpoint
         endpoint = request.url.path
@@ -246,11 +251,13 @@ class RateLimitMiddleware:
         async def send_with_headers(message):
             if message["type"] == "http.response.start":
                 headers = list(message.get("headers", []))
-                headers.extend([
-                    (b"x-ratelimit-limit", str(metadata["limit"]).encode()),
-                    (b"x-ratelimit-remaining", str(metadata["remaining"]).encode()),
-                    (b"x-ratelimit-reset", str(metadata.get("reset_time", 0)).encode())
-                ])
+                # Добавляем headers только если metadata содержит необходимые ключи
+                if metadata and "limit" in metadata:
+                    headers.extend([
+                        (b"x-ratelimit-limit", str(metadata.get("limit", 60)).encode()),
+                        (b"x-ratelimit-remaining", str(metadata.get("remaining", 60)).encode()),
+                        (b"x-ratelimit-reset", str(metadata.get("reset_time", 0)).encode())
+                    ])
                 message["headers"] = headers
             await send(message)
         

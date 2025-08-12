@@ -42,9 +42,16 @@ class StaticDataProvider(BaseDataProvider):
         
         # Статические данные для mock режима
         self.static_data_cache = {}
+        self._initialized = False
         
-        # Инициализация
-        asyncio.create_task(self._initialize_seo_models())
+        # Инициализация будет выполнена при первом вызове
+        logger.info("🔧 Инициализирован StaticDataProvider")
+    
+    async def _ensure_initialized(self):
+        """Обеспечивает инициализацию перед первым использованием"""
+        if not self._initialized:
+            await self._initialize_seo_models()
+            self._initialized = True
     
     async def _initialize_seo_models(self):
         """Инициализация компонентов SEO AI Models"""
@@ -198,6 +205,7 @@ class StaticDataProvider(BaseDataProvider):
         Returns:
             SEOData: Комплексные SEO данные
         """
+        await self._ensure_initialized()
         start_time = time.time()
         cache_key = self._get_cache_key("seo_data", domain, **kwargs)
         
@@ -443,6 +451,7 @@ class StaticDataProvider(BaseDataProvider):
     
     async def get_client_data(self, client_id: str, **kwargs) -> ClientData:
         """Получение данных клиента (статические или из локальной базы)"""
+        await self._ensure_initialized()
         start_time = time.time()
         cache_key = self._get_cache_key("client_data", client_id, **kwargs)
         
@@ -512,6 +521,7 @@ class StaticDataProvider(BaseDataProvider):
     
     async def get_competitive_data(self, domain: str, competitors: List[str], **kwargs) -> CompetitiveData:
         """Конкурентный анализ через SEO AI Models"""
+        await self._ensure_initialized()
         start_time = time.time()
         cache_key = self._get_cache_key("competitive_data", domain, *competitors, **kwargs)
         

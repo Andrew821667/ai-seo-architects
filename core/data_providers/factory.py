@@ -6,6 +6,7 @@ Factory для создания и управления Data Providers
 from typing import Dict, Any, List, Optional, Type
 import logging
 from enum import Enum
+from datetime import datetime
 
 from core.data_providers.base import BaseDataProvider
 from core.data_providers.static_provider import StaticDataProvider
@@ -198,8 +199,9 @@ class DataProviderFactory:
         # Добавляем общие настройки
         default_config.update({
             "provider_type": provider_type.value,
-            "created_at": logger.info("📝 Конфигурация провайдера собрана")
+            "created_at": datetime.now().isoformat()
         })
+        logger.info("📝 Конфигурация провайдера собрана")
         
         # Мержим с пользовательской конфигурацией
         if user_config:
