@@ -21,7 +21,7 @@ class ProviderType(str, Enum):
     MOCK = "mock"
 
 
-class ProviderFactory:
+class DataProviderFactory:
     """Фабрика для создания и управления провайдерами данных"""
     
     # Singleton instances для повторного использования
@@ -389,17 +389,17 @@ class ProviderFactory:
 # Convenience functions для простого использования
 def create_static_provider(config: Optional[Dict[str, Any]] = None) -> BaseDataProvider:
     """Создание static провайдера"""
-    return ProviderFactory.create_provider(ProviderType.STATIC.value, config)
+    return DataProviderFactory.create_provider(ProviderType.STATIC.value, config)
 
 
 def create_mcp_provider(config: Optional[Dict[str, Any]] = None) -> BaseDataProvider:
     """Создание MCP провайдера"""
-    return ProviderFactory.create_provider(ProviderType.MCP.value, config)
+    return DataProviderFactory.create_provider(ProviderType.MCP.value, config)
 
 
 def create_hybrid_provider(config: Optional[Dict[str, Any]] = None) -> BaseDataProvider:
     """Создание hybrid провайдера"""
-    return ProviderFactory.create_provider(ProviderType.HYBRID.value, config)
+    return DataProviderFactory.create_provider(ProviderType.HYBRID.value, config)
 
 
 # Глобальная функция для получения провайдера из конфигурации
@@ -414,4 +414,4 @@ def get_provider_from_config(config: Dict[str, Any]) -> BaseDataProvider:
         BaseDataProvider: Экземпляр провайдера
     """
     provider_type = config.get("provider_type", "static")
-    return ProviderFactory.create_provider(provider_type, config)
+    return DataProviderFactory.create_provider(provider_type, config)

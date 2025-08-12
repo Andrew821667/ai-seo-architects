@@ -80,3 +80,11 @@ class AIAgentsConfig:
 
 # Глобальный экземпляр конфигурации
 config = AIAgentsConfig()
+
+def load_config():
+    """Загрузить конфигурацию"""
+    return config
+
+def get_config():
+    """Получить конфигурацию"""
+    return config

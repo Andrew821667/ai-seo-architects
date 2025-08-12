@@ -1,30 +1,30 @@
-"""Tests - "5AB>20O A8AB5<0 4;O AI SEO Architects
+"""Tests - Тестовая система для AI SEO Architects
 
--B>B ?0:5B A>45@68B ?>;=CN B5AB>2CN A8AB5<C:
+Этот пакет содержит полную тестовую систему:
 
-!B@C:BC@0:
-- unit/: .=8B-B5ABK 4;O >B45;L=KE :><?>=5=B>2
-- integration/: =B53@0F8>==K5 B5ABK
-- fixtures/: "5AB>2K5 40==K5 8 <>:8
-- conftest.py: >=D83C@0F8O pytest
+Структура:
+- unit/: Юнит-тесты для отдельных компонентов
+- integration/: Интеграционные тесты
+- fixtures/: Тестовые данные и моки
+- conftest.py: Конфигурация pytest
 
-"5AB>2>5 ?>:@KB85:
-- 14/14 035=B>2 ?>:@KB> B5AB0<8
-- API endpoints B5AB8@>20=85
-- MCP 8=B53@0F8>==>5 B5AB8@>20=85
-- Docker 8=D@0AB@C:BC@0 B5ABK
+Тестовое покрытие:
+- 14/14 агентов покрыто тестами
+- API endpoints тестирование
+- MCP интеграционное тестирование
+- Docker инфраструктура тесты
 """
 
 import os
 import sys
 
-# >102;O5< :>@=52CN 48@5:B>@8N 2 PYTHONPATH
+# Добавляем корневую директорию в PYTHONPATH
 test_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(test_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# 1I85 B5AB>2K5 :>=D83C@0F88
+# Общие тестовые конфигурации
 TEST_CONFIG = {
     'environment': 'test',
     'debug': True,
@@ -36,17 +36,17 @@ TEST_CONFIG = {
     'agent_test_timeout': 10
 }
 
-# >:8 4;O 2=5H=8E A5@28A>2
+# Моки для внешних сервисов
 MOCK_SERVICES = {
     'openai_api': True,
     'anthropic_api': True,
     'external_apis': True,
-    'file_system': False,  # A?>;L7C5< @50;L=CN D09;>2CN A8AB5<C
-    'database': False      # A?>;L7C5< in-memory SQLite
+    'file_system': False,  # Используем реальную файловую систему
+    'database': False      # Используем in-memory SQLite
 }
 
 __version__ = "1.0.0"
-__test_coverage__ = "85%+"  # &5;52>5 ?>:@KB85
+__test_coverage__ = "85%+"  # Целевое покрытие
 
 __all__ = [
     'TEST_CONFIG',
@@ -57,20 +57,20 @@ __all__ = [
 ]
 
 def setup_test_environment():
-    """0AB@>9:0 B5AB>2>9 A@54K"""
-    # #AB0=02;8205< ?5@5<5==K5 >:@C65=8O 4;O B5AB>2
+    """Настройка тестовой среды"""
+    # Устанавливаем переменные окружения для тестов
     for key, value in TEST_CONFIG.items():
         os.environ[key.upper()] = str(value)
     
-    # B:;NG05< ;>38@>20=85 2 B5AB0E
+    # Отключаем логирование в тестах
     import logging
     logging.getLogger().setLevel(logging.CRITICAL)
     
-    print(" "5AB>20O A@540 =0AB@>5=0")
+    print("✅ Тестовая среда настроена")
 
 def cleanup_test_environment():
-    """G8AB:0 ?>A;5 B5AB>2"""
-    # G8I05< 2@5<5==K5 D09;K
+    """Очистка после тестов"""
+    # Очищаем временные файлы
     import tempfile
     import shutil
     
@@ -83,10 +83,10 @@ def cleanup_test_environment():
             else:
                 os.remove(item_path)
     
-    print(" "5AB>20O A@540 >G8I5=0")
+    print("✅ Тестовая среда очищена")
 
 def get_test_config(key: str = None):
-    """>;CG8BL B5AB>2CN :>=D83C@0F8N"""
+    """Получить тестовую конфигурацию"""
     if key:
         return TEST_CONFIG.get(key)
     return TEST_CONFIG.copy()

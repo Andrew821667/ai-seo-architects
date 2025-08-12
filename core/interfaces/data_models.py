@@ -46,6 +46,75 @@ class LeadOutput(BaseModel):
     class Config:
         use_enum_values = True
 
+class TaskType(str, Enum):
+    """Типы задач для агентов"""
+    LEAD_ANALYSIS = "lead_analysis"
+    SEO_AUDIT = "seo_audit"
+    CONTENT_STRATEGY = "content_strategy"
+    COMPETITOR_ANALYSIS = "competitor_analysis"
+    PROPOSAL_GENERATION = "proposal_generation"
+    REPORTING = "reporting"
+
+class AgentState(str, Enum):
+    """Состояния агентов"""
+    IDLE = "idle"
+    PROCESSING = "processing"
+    ERROR = "error"
+    MAINTENANCE = "maintenance"
+
+class AgentTask(BaseModel):
+    """Задача для агента"""
+    task_id: str
+    task_type: TaskType
+    input_data: Dict[str, Any]
+    priority: int = Field(default=5, ge=1, le=10)
+    timeout: Optional[int] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class AgentResponse(BaseModel):
+    """Ответ агента"""
+    task_id: str
+    success: bool
+    result: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    processing_time: float
+    completed_at: datetime = Field(default_factory=datetime.utcnow)
+
+class AgentPerformance(BaseModel):
+    """Метрики производительности агента"""
+    agent_id: str
+    tasks_processed: int
+    success_rate: float
+    avg_processing_time: float
+    last_activity: Optional[datetime] = None
+
+class TaskStatus(str, Enum):
+    """Статусы задач"""
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+class TaskResult(BaseModel):
+    """Результат выполнения задачи"""
+    status: TaskStatus
+    data: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None
+
+class MetricsData(BaseModel):
+    """Данные метрик"""
+    timestamp: datetime
+    metric_name: str
+    value: float
+    tags: Dict[str, str] = Field(default_factory=dict)
+
+class ConfigModel(BaseModel):
+    """Базовая модель конфигурации"""
+    name: str
+    version: str
+    settings: Dict[str, Any]
+
 class SEOData(BaseModel):
     """Данные SEO анализа"""
     domain: str

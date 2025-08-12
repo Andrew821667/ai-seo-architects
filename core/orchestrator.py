@@ -13,7 +13,7 @@ import asyncio
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class SEOArchitectsOrchestrator:
+class AgentOrchestrator:
     """Главный оркестратор системы AI SEO Architects"""
     
     def __init__(self):
@@ -21,7 +21,7 @@ class SEOArchitectsOrchestrator:
         self.agents = {}
         self.graph = None
         self.compiled_graph = None
-        logger.info("🏗️ Инициализация AI SEO Architects Orchestrator")
+        logger.info("🏗️ Инициализация Agent Orchestrator")
     
     def register_agent(self, agent_name: str, agent_instance) -> None:
         """
@@ -308,4 +308,4 @@ class SEOArchitectsOrchestrator:
         return final_state
 
 # Глобальный экземпляр оркестратора
-orchestrator = SEOArchitectsOrchestrator()
+orchestrator = AgentOrchestrator()
