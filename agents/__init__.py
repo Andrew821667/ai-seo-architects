@@ -94,7 +94,13 @@ __all__ = [
     'MANAGEMENT_AGENTS',
     'OPERATIONAL_AGENTS',
     'ALL_AGENTS',
-    'AGENT_CLASSES'
+    'AGENT_CLASSES',
+    
+    # Utility functions
+    'get_agent_class',
+    'get_agents_by_level',
+    'get_agent_count',
+    'get_agent_instance'
 ]
 
 def get_agent_class(agent_id: str):
@@ -113,3 +119,15 @@ def get_agents_by_level(level: str):
 def get_agent_count():
     """Получить общее количество агентов"""
     return len(ALL_AGENTS)
+
+def get_agent_instance(agent_id: str):
+    """Создать экземпляр агента по его ID"""
+    agent_class = AGENT_CLASSES.get(agent_id)
+    if agent_class:
+        try:
+            # Создаем экземпляр агента с минимальной конфигурацией
+            return agent_class()
+        except Exception as e:
+            print(f"Ошибка создания агента {agent_id}: {e}")
+            return None
+    return None
