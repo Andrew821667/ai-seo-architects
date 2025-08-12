@@ -1,9 +1,9 @@
-"""AI SEO Architects - 35=BK 4;O 02B><0B870F88 SEO-035=BAB20
+"""AI SEO Architects - Агенты для автоматизации SEO-агентства
 
--B>B ?0:5B A>45@68B ?>;=CN :><0=4C 87 14 AI-035=B>2, >@30=87>20==KE ?> C@>2=O<:
-- Executive Level (2 035=B0): AB@0B538G5A:>5 ?;0=8@>20=85 8 @0728B85 187=5A0
-- Management Level (4 035=B0): :>>@48=0F8O ?@>F5AA>2 8 >?5@0F89
-- Operational Level (8 035=B>2): 2K?>;=5=85 A?5F80;878@>20==KE 7040G
+Этот пакет содержит полную команду из 14 AI-агентов, организованных по уровням:
+- Executive Level (2 агента): стратегическое планирование и развитие бизнеса
+- Management Level (4 агента): координация процессов и операций
+- Operational Level (8 агентов): выполнение специализированных задач
 """
 
 from .executive.chief_seo_strategist import ChiefSEOStrategistAgent
@@ -23,7 +23,7 @@ from .operational.link_building import LinkBuildingAgent
 from .operational.competitive_analysis import CompetitiveAnalysisAgent
 from .operational.reporting import ReportingAgent
 
-# @C??8@>2:0 ?> C@>2=O<
+# Группировка по уровням
 EXECUTIVE_AGENTS = [
     ChiefSEOStrategistAgent,
     BusinessDevelopmentDirectorAgent
@@ -47,10 +47,10 @@ OPERATIONAL_AGENTS = [
     ReportingAgent
 ]
 
-# A5 035=BK
+# Все агенты
 ALL_AGENTS = EXECUTIVE_AGENTS + MANAGEMENT_AGENTS + OPERATIONAL_AGENTS
 
-# Mapping ?> ID 035=B>2
+# Mapping по ID агентов
 AGENT_CLASSES = {
     'chief_seo_strategist': ChiefSEOStrategistAgent,
     'business_development_director': BusinessDevelopmentDirectorAgent,
@@ -98,11 +98,11 @@ __all__ = [
 ]
 
 def get_agent_class(agent_id: str):
-    """>;CG8BL :;0AA 035=B0 ?> 53> ID"""
+    """Получить класс агента по его ID"""
     return AGENT_CLASSES.get(agent_id)
 
 def get_agents_by_level(level: str):
-    """>;CG8BL 035=B>2 ?> C@>2=N (executive/management/operational)"""
+    """Получить агентов по уровню (executive/management/operational)"""
     level_map = {
         'executive': EXECUTIVE_AGENTS,
         'management': MANAGEMENT_AGENTS,
@@ -111,5 +111,5 @@ def get_agents_by_level(level: str):
     return level_map.get(level.lower(), [])
 
 def get_agent_count():
-    """>;CG8BL >1I55 :>;8G5AB2> 035=B>2"""
+    """Получить общее количество агентов"""
     return len(ALL_AGENTS)

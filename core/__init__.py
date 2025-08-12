@@ -1,11 +1,11 @@
-"""Core AI SEO Architects - A=>2=K5 :><?>=5=BK A8AB5<K
+"""Core AI SEO Architects - Основные компоненты системы
 
--B>B ?0:5B A>45@68B 107>2CN 0@E8B5:BC@C 4;O:
-- 07>2K5 :;0AAK 035=B>2
-- @>20945@K 40==KE
-- MCP (Model Context Protocol) 8=B53@0F8N
-- @:5AB@0F8N @01>BK 035=B>2
-- >45;8 40==KE 8 8=B5@D59AK
+Этот пакет содержит базовую архитектуру для:
+- Базовые классы агентов
+- Провайдеры данных
+- MCP (Model Context Protocol) интеграцию
+- Оркестрацию работы агентов
+- Модели данных и интерфейсы
 """
 
 from .base_agent import BaseAgent
@@ -22,26 +22,26 @@ __author__ = "Andrew Popov"
 __email__ = "a.popov.gv@gmail.com"
 
 __all__ = [
-    # A=>2=K5 :;0AAK
+    # Основные классы
     'BaseAgent',
     'AgentOrchestrator',
     'MCPAgentManager',
     
-    # @>20945@K 40==KE
+    # Провайдеры данных
     'StaticDataProvider',
     'MCPDataProvider',
     'DataProviderFactory',
     
-    # >45;8 40==KE
+    # Модели данных
     'AgentTask',
     'AgentResponse',
     'TaskType',
     'AgentState',
     
-    # >=D83C@0F8O
+    # Конфигурация
     'load_config',
     'get_config',
     
-    # $01@8G=K5 <5B>4K
+    # Фабричные методы
     'get_mcp_agent_manager'
 ]
