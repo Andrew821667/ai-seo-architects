@@ -9,6 +9,8 @@ import asyncio
 import time
 import logging
 from functools import wraps
+import openai
+import os
 
 # Избегаем circular imports
 if TYPE_CHECKING:
@@ -169,6 +171,9 @@ class BaseAgent(ABC):
         # Инициализация RAG если включен
         if self.rag_enabled:
             self._initialize_rag_knowledge()
+            
+        # Инициализация OpenAI клиента
+        self._initialize_openai_client()
     
     async def process_task_with_retry(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -225,6 +230,133 @@ class BaseAgent(ABC):
                 "timestamp": datetime.now().isoformat()
             }
     
+    def _initialize_openai_client(self):
+        """Инициализация OpenAI клиента"""
+        try:
+            openai.api_key = os.getenv("OPENAI_API_KEY")
+            if not openai.api_key:
+                logger.warning(f"⚠️ OPENAI_API_KEY не установлен для агента {self.agent_id}")
+                self.openai_client = None
+            else:
+                self.openai_client = openai.AsyncOpenAI(api_key=openai.api_key)
+                logger.info(f"✅ OpenAI клиент инициализирован для {self.agent_id}")
+        except Exception as e:
+            logger.error(f"❌ Ошибка инициализации OpenAI для {self.agent_id}: {e}")
+            self.openai_client = None
+    
+    def get_system_prompt(self) -> str:
+        """
+        Базовый системный промпт (должен быть переопределен в наследниках)
+        
+        Returns:
+            str: Системный промпт для агента
+        """
+        return f"""Ты - {self.name}, специализированный AI-агент уровня {self.agent_level}.
+Твоя задача - выполнять задачи в рамках своей экспертизы с высоким качеством и профессионализмом.
+
+ТВОИ ХАРАКТЕРИСТИКИ:
+- Уровень: {self.agent_level}
+- Специализация: {self.name}
+- ID: {self.agent_id}
+
+ИНСТРУКЦИИ:
+1. Всегда отвечай профессионально и по существу
+2. Используй свою экспертизу для качественного анализа
+3. Форматируй ответ в JSON структуре
+4. Будь конкретен и предоставляй actionable insights"""
+
+    async def call_openai(self, messages: list, temperature: float = 0.7) -> Dict[str, Any]:
+        """
+        Вызов OpenAI API с retry логикой
+        
+        Args:
+            messages: Список сообщений для ChatGPT
+            temperature: Параметр креативности (0.0-1.0)
+            
+        Returns:
+            Dict с ответом от OpenAI
+        """
+        if not self.openai_client:
+            return {
+                "success": False,
+                "error": "OpenAI client not initialized",
+                "content": "Mock response - OpenAI не доступен"
+            }
+        
+        try:
+            response = await self.openai_client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=4000
+            )
+            
+            content = response.choices[0].message.content
+            
+            return {
+                "success": True,
+                "content": content,
+                "model": self.model_name,
+                "usage": {
+                    "prompt_tokens": response.usage.prompt_tokens,
+                    "completion_tokens": response.usage.completion_tokens,
+                    "total_tokens": response.usage.total_tokens
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ OpenAI API ошибка для {self.agent_id}: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "content": f"Ошибка вызова OpenAI: {str(e)}"
+            }
+
+    async def process_with_llm(self, user_prompt: str, task_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Обработка задачи с помощью LLM
+        
+        Args:
+            user_prompt: Промпт пользователя
+            task_data: Данные задачи
+            
+        Returns:
+            Dict с результатом обработки
+        """
+        # Получаем контекст знаний если RAG включен
+        knowledge_context = ""
+        if self.rag_enabled:
+            query = f"{user_prompt} {str(task_data)}"
+            knowledge_context = await self.get_knowledge_context(query, k=3)
+        
+        # Формируем сообщения для ChatGPT
+        messages = [
+            {"role": "system", "content": self.get_system_prompt()},
+            {"role": "user", "content": self.format_prompt_with_rag(user_prompt, task_data)}
+        ]
+        
+        # Вызываем OpenAI API
+        llm_response = await self.call_openai(messages)
+        
+        if llm_response["success"]:
+            return {
+                "success": True,
+                "agent": self.agent_id,
+                "result": llm_response["content"],
+                "model_used": llm_response.get("model"),
+                "tokens_used": llm_response.get("usage", {}),
+                "knowledge_context_length": len(knowledge_context),
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {
+                "success": False,
+                "agent": self.agent_id,
+                "error": llm_response["error"],
+                "fallback_result": f"Fallback ответ для {self.name}: задача требует ручной обработки",
+                "timestamp": datetime.now().isoformat()
+            }
+
     @abstractmethod
     async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """

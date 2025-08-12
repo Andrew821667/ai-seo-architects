@@ -155,6 +155,54 @@ class LeadQualificationAgent(BaseAgent):
         
         logger.info(f"🎯 Инициализирован {self.name} с comprehensive scoring system")
     
+    def get_system_prompt(self) -> str:
+        """Специализированный системный промпт для квалификации лидов"""
+        return f"""Ты - экспертный Lead Qualification Agent, специалист по квалификации лидов для SEO-агентства.
+
+ТВОЯ ЭКСПЕРТИЗА:
+• BANT (Budget, Authority, Need, Timeline) методология - 30%
+• MEDDIC (Metrics, Economic buyer, Decision criteria, Decision process, Identify pain, Champion) - 25%
+• Lead scoring и приоритизация - 20%
+• Отраслевая специализация - 15%
+• Pain points анализ - 10%
+
+ЗАДАЧА: Проанализировать входящий лид и выполнить комплексную квалификацию с присвоением скора от 0 до 100 баллов.
+
+МЕТОДОЛОГИЯ СКОРИНГА:
+1. BANT Analysis (30 баллов максимум):
+   - Budget: Есть ли бюджет на SEO (0-10)
+   - Authority: Лицо принимающее решения (0-10)  
+   - Need: Острота потребности в SEO (0-10)
+
+2. MEDDIC Analysis (25 баллов максимум):
+   - Metrics: KPI и цели (0-5)
+   - Economic buyer: Бюджетодержатель (0-5)
+   - Decision criteria: Критерии выбора (0-5)
+   - Decision process: Процесс принятия решений (0-5)
+   - Pain points: Болевые точки (0-5)
+
+3. Company Analysis (20 баллов максимум):
+   - Размер компании (0-5)
+   - Отрасль и соответствие (0-5)
+   - Конкурентная ситуация (0-5)
+   - Потенциал роста (0-5)
+
+4. Additional Factors (25 баллов максимум):
+   - Срочность проекта (0-5)
+   - Предыдущий опыт с SEO (0-5)
+   - Качество лида (источник) (0-5)
+   - Готовность к инвестициям (0-5)
+   - Enterprise бонус (0-5)
+
+ОТРАСЛЕВЫЕ БОНУСЫ:
+• FinTech: +15 баллов
+• E-commerce: +10 баллов
+• Healthcare: +12 баллов
+• Education: +8 баллов
+• Real Estate: +10 баллов
+
+РЕЗУЛЬТАТ: Верни ТОЛЬКО JSON с детальной квалификацией лида включая скор, рекомендации и следующие шаги."""
+    
 
     def calculate_lead_score(self, lead_data: Dict[str, Any]) -> int:
         """Агрессивная функция scoring для enterprise компаний"""
@@ -230,55 +278,143 @@ class LeadQualificationAgent(BaseAgent):
 
     async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Основная логика квалификации лида
+        Основная логика квалификации лида с реальными LLM вызовами
         
         Args:
             task_data: Данные задачи с информацией о лиде
             
         Returns:
-            Dict с результатами квалификации
+            Dict с результатами квалификации от OpenAI
         """
         try:
-            # Извлекаем и валидируем входные данные
+            # Извлекаем входные данные
             input_data = task_data.get("input_data", {})
             
-            # Безопасное создание LeadData с обработкой отсутствующих полей
+            logger.info(f"🔍 Начинаем квалификацию лида: {input_data.get('company_name', 'Unknown')}")
+            
+            # Формируем специализированный промпт для квалификации
+            user_prompt = f"""Проанализируй и квалифицируй этого лида для SEO-агентства:
+
+ДАННЫЕ ЛИДА:
+Company: {input_data.get('company_name', 'Unknown')}
+Industry: {input_data.get('industry', 'Unknown')}
+Company Size: {input_data.get('company_size', 'Unknown')}
+Budget Range: {input_data.get('budget_range', 'Unknown')}
+Timeline: {input_data.get('timeline', 'Unknown')}
+Contact Role: {input_data.get('contact_role', 'Unknown')}
+Email: {input_data.get('email', 'Unknown')}
+Phone: {input_data.get('phone', 'Unknown')}
+Website: {input_data.get('website', 'Unknown')}
+Pain Points: {input_data.get('pain_points', 'Unknown')}
+Goals: {input_data.get('goals', 'Unknown')}
+Current SEO: {input_data.get('current_seo', 'Unknown')}
+
+Выполни полную квалификацию используя BANT и MEDDIC методологии. Верни результат строго в JSON формате:
+{{
+    "lead_score": <number 0-100>,
+    "lead_quality": "<Hot Lead/Warm Lead/Cold Lead/Unqualified>",
+    "bant_analysis": {{
+        "budget_score": <0-10>,
+        "authority_score": <0-10>,
+        "need_score": <0-10>,
+        "timeline_score": <0-10>
+    }},
+    "meddic_analysis": {{
+        "metrics_score": <0-5>,
+        "economic_buyer_score": <0-5>,
+        "decision_criteria_score": <0-5>,
+        "decision_process_score": <0-5>,
+        "pain_score": <0-5>
+    }},
+    "strengths": ["<list of key strengths>"],
+    "weaknesses": ["<list of weaknesses>"],
+    "next_actions": ["<recommended next steps>"],
+    "estimated_deal_value": <number>,
+    "close_probability": <0.0-1.0>,
+    "recommended_approach": "<strategy recommendation>"
+}}"""
+
+            # Используем базовый метод с LLM интеграцией
+            result = await self.process_with_llm(user_prompt, input_data)
+            
+            if result["success"]:
+                logger.info(f"✅ Квалификация лида завершена через OpenAI: {result.get('model_used', 'unknown')}")
+                # Добавляем метаданные агента
+                if isinstance(result.get("result"), str):
+                    # Если результат строка, оборачиваем в структуру
+                    result["lead_qualification_response"] = result["result"]
+                    result["agent_type"] = "lead_qualification"
+                    result["methodology"] = ["BANT", "MEDDIC"]
+                
+                return result
+            else:
+                # Fallback к базовой логике если OpenAI недоступен
+                logger.warning("⚠️ OpenAI недоступен, используем fallback логику")
+                return await self._fallback_qualification(input_data)
+                
+        except Exception as e:
+            logger.error(f"❌ Ошибка в квалификации лида: {str(e)}")
+            return {
+                "success": False,
+                "agent": self.agent_id,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    async def _fallback_qualification(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Fallback логика квалификации без LLM"""
+        try:
+            # Безопасное создание LeadData
             try:
                 lead_data = LeadData(**input_data)
-            except Exception as validation_error:
-                # Если валидация не прошла, создаем минимальный объект
-                logger.warning(f"Validation error, using basic data: {validation_error}")
+            except Exception:
                 lead_data = LeadData(
                     company_name=input_data.get("company_name", "Unknown Company"),
                     email=input_data.get("email", "unknown@example.com")
                 )
-                # Добавляем дополнительные поля если они есть
                 for field in ["industry", "company_size", "budget_range", "timeline", "phone", "website"]:
                     if field in input_data:
                         setattr(lead_data, field, input_data[field])
             
-            logger.info(f"🔍 Начинаем квалификацию лида: {lead_data.company_name}")
+            # Быстрый скоринг
+            score = self.calculate_lead_score({
+                'company_name': lead_data.company_name,
+                'company_size': lead_data.company_size or '0',
+                'industry': lead_data.industry or 'unknown',
+                'budget_range': lead_data.budget_range or '0'
+            })
             
-            # 🧠 RAG: Получаем релевантные знания для квалификации
-            query_text = f"lead qualification {lead_data.company_name} {lead_data.industry or ''} {lead_data.company_size or ''}"
-            knowledge_context = await self.get_knowledge_context(query_text)
-            
-            if knowledge_context:
-                logger.info(f"✅ Получен контекст знаний ({len(knowledge_context)} символов) для квалификации")
+            # Определяем качество лида
+            if score >= 85:
+                quality = "Hot Lead"
+            elif score >= 70:
+                quality = "Warm Lead"
+            elif score >= 50:
+                quality = "Cold Lead"
             else:
-                logger.info("⚠️ Контекст знаний не найден, используем базовую логику")
+                quality = "Unqualified"
             
-            # Обогащаем данные лида
-            enriched_data = await self._enrich_lead_data(lead_data)
+            return {
+                "success": True,
+                "agent": self.agent_id,
+                "result": {
+                    "lead_score": score,
+                    "lead_quality": quality,
+                    "company_name": lead_data.company_name,
+                    "methodology": "Fallback scoring",
+                    "note": "Результат получен без OpenAI (fallback режим)"
+                },
+                "fallback_mode": True,
+                "timestamp": datetime.now().isoformat()
+            }
             
-            # Выполняем BANT анализ
-            bant_score = self._calculate_bant_score(enriched_data)
-            
-            # Выполняем MEDDIC анализ  
-            meddic_score = self._calculate_meddic_score(enriched_data)
-            
-            # Анализируем болевые точки
-            pain_score = self._analyze_pain_points(enriched_data)
+        except Exception as e:
+            return {
+                "success": False,
+                "agent": self.agent_id,
+                "error": f"Fallback qualification failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
             
             # Оцениваем уровень полномочий
             authority_score = self._assess_authority_level(enriched_data)

@@ -38,6 +38,7 @@ class TechnicalSEOAuditorAgent(BaseAgent):
         super().__init__(
             agent_id="technical_seo_auditor",
             name="Technical SEO Auditor Agent",
+            agent_level="operational",
             data_provider=data_provider,
             knowledge_base="knowledge/operational/technical_seo_auditor.md",
             **kwargs
@@ -155,21 +156,225 @@ class TechnicalSEOAuditorAgent(BaseAgent):
         print(f"🎯 Critical Score Threshold: {self.critical_thresholds['technical_score_min']}+")
         print(f"⚡ Core Web Vitals: LCP<{self.audit_categories['core_web_vitals']['thresholds']['lcp']['good']}s")
         print(f"🛠️ Tools Integration: {sum(len(tools) for tools in self.audit_tools.values())} инструментов")
+    
+    def get_system_prompt(self) -> str:
+        """Специализированный системный промпт для технического SEO аудита"""
+        return f"""Ты - экспертный Technical SEO Auditor, специалист по техническому SEO аудиту сайтов.
+
+ТВОЯ ЭКСПЕРТИЗА:
+• Core Web Vitals (LCP, FID, CLS) анализ и оптимизация - 25%
+• Crawling и индексация (robots.txt, sitemaps, canonicals) - 20%
+• Структурированные данные (Schema.org, JSON-LD) - 15%
+• Мобильная оптимизация (Mobile-First Indexing) - 15%
+• Performance optimization (скорость загрузки) - 10%
+• Международное SEO (hreflang, геотаргетинг) - 10%
+• Security & HTTPS анализ - 5%
+
+ЗАДАЧА: Провести комплексный технический SEO аудит сайта и выявить критические проблемы.
+
+МЕТОДОЛОГИЯ АУДИТА:
+1. Core Web Vitals Analysis (25 баллов):
+   - LCP (Largest Contentful Paint): <2.5s отлично, <4.0s нужна работа, >4.0s плохо
+   - FID (First Input Delay): <100ms отлично, <300ms нужна работа, >300ms плохо  
+   - CLS (Cumulative Layout Shift): <0.1 отлично, <0.25 нужна работа, >0.25 плохо
+
+2. Crawling & Indexing (20 баллов):
+   - robots.txt корректность и доступность
+   - XML Sitemap наличие и валидность
+   - Canonical URLs правильность
+   - URL структура и параметры
+
+3. Technical Performance (15 баллов):
+   - Скорость загрузки страницы
+   - Размер ресурсов (HTML, CSS, JS, изображения)
+   - HTTP статус коды и редиректы
+   - Gzip/Brotli сжатие
+
+4. Mobile & Usability (15 баллов):
+   - Mobile-friendly тестирование
+   - Viewport настройки
+   - Touch элементы размеры
+   - Адаптивный дизайн
+
+5. Structured Data (10 баллов):
+   - Schema.org markup наличие
+   - JSON-LD корректность
+   - Rich Snippets потенциал
+
+6. International SEO (10 баллов):
+   - hreflang настройки
+   - Геотаргетинг
+   - Мультиязычность
+
+7. Security (5 баллов):
+   - HTTPS настройки
+   - SSL сертификат
+   - Security headers
+
+ОЦЕНКА: Общий скор от 0 до 100 баллов:
+- 90-100: Отличное техническое SEO
+- 75-89: Хорошее состояние, мелкие улучшения  
+- 60-74: Среднее состояние, требует оптимизации
+- 40-59: Плохое состояние, много проблем
+- 0-39: Критическое состояние, срочный редизайн
+
+РЕЗУЛЬТАТ: Верни ТОЛЬКО JSON с детальным техническим аудитом, проблемами и рекомендациями."""
 
     async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Основная логика обработки технического SEO аудита
+        Основная логика технического SEO аудита с реальными LLM вызовами
         """
-        start_time = datetime.now()
-
         try:
             # Извлекаем данные
             input_data = task_data.get('input_data', {})
+            domain = input_data.get('domain', 'unknown-domain.com')
             task_type = input_data.get('task_type', 'full_technical_audit')
+            
+            print(f"🔧 Начинаем технический SEO аудит для: {domain}")
+            
+            # Формируем специализированный промпт для технического аудита
+            user_prompt = f"""Проведи комплексный технический SEO аудит для сайта: {domain}
 
-            print(f"🔧 Обработка Technical SEO задачи: {task_type}")
+ВХОДНЫЕ ДАННЫЕ:
+Domain: {domain}
+Task Type: {task_type}
+Current Issues: {input_data.get('current_issues', 'Unknown')}
+Site Type: {input_data.get('site_type', 'Unknown')}
+Technology Stack: {input_data.get('technology', 'Unknown')}
+Target Audience: {input_data.get('target_audience', 'Unknown')}
+Business Goals: {input_data.get('business_goals', 'Unknown')}
 
-            # Роутинг по типам задач с enhanced функциональностью
+Выполни детальный технический аудит по всем критическим областям. Верни результат строго в JSON формате:
+{{
+    "technical_score": <number 0-100>,
+    "audit_grade": "<Excellent/Good/Average/Poor/Critical>",
+    "core_web_vitals": {{
+        "lcp_score": <0-25>,
+        "fid_score": <0-25>,
+        "cls_score": <0-25>,
+        "overall_cwv_score": <0-25>,
+        "recommendations": ["<CWV optimization recommendations>"]
+    }},
+    "crawling_indexing": {{
+        "score": <0-20>,
+        "robots_txt": "<status>",
+        "sitemap_xml": "<status>",
+        "canonicals": "<status>",
+        "issues": ["<crawling issues>"],
+        "recommendations": ["<crawling recommendations>"]
+    }},
+    "technical_performance": {{
+        "score": <0-15>,
+        "page_speed": "<assessment>",
+        "resource_optimization": "<status>",
+        "compression": "<status>",
+        "recommendations": ["<performance recommendations>"]
+    }},
+    "mobile_usability": {{
+        "score": <0-15>,
+        "mobile_friendly": "<status>",
+        "viewport": "<status>",
+        "touch_elements": "<status>",
+        "recommendations": ["<mobile recommendations>"]
+    }},
+    "structured_data": {{
+        "score": <0-10>,
+        "schema_present": "<yes/no>",
+        "json_ld": "<status>",
+        "rich_snippets_potential": "<assessment>",
+        "recommendations": ["<structured data recommendations>"]
+    }},
+    "international_seo": {{
+        "score": <0-10>,
+        "hreflang": "<status>",
+        "geotargeting": "<status>",
+        "recommendations": ["<international SEO recommendations>"]
+    }},
+    "security": {{
+        "score": <0-5>,
+        "https": "<status>",
+        "ssl_certificate": "<status>",
+        "security_headers": "<status>",
+        "recommendations": ["<security recommendations>"]
+    }},
+    "critical_issues": ["<list of critical issues>"],
+    "priority_fixes": ["<top priority fixes>"],
+    "estimated_fix_time": "<time estimate>",
+    "business_impact": "<impact assessment>"
+}}"""
+
+            # Используем базовый метод с LLM интеграцией
+            result = await self.process_with_llm(user_prompt, input_data)
+            
+            if result["success"]:
+                print(f"✅ Технический SEO аудит завершен через OpenAI: {result.get('model_used', 'unknown')}")
+                # Добавляем метаданные агента
+                if isinstance(result.get("result"), str):
+                    result["technical_seo_audit_response"] = result["result"]
+                    result["agent_type"] = "technical_seo_auditor"
+                    result["audit_type"] = task_type
+                
+                return result
+            else:
+                # Fallback к базовой логике если OpenAI недоступен
+                print("⚠️ OpenAI недоступен, используем fallback аудит")
+                return await self._fallback_technical_audit(input_data)
+                
+        except Exception as e:
+            print(f"❌ Ошибка в техническом SEO аудите: {str(e)}")
+            return {
+                "success": False,
+                "agent": self.agent_id,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    async def _fallback_technical_audit(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Fallback логика технического аудита без LLM"""
+        try:
+            domain = input_data.get('domain', 'unknown-domain.com')
+            
+            # Базовый технический скор
+            base_score = 65  # Средний скор
+            
+            # Простые проверки
+            issues = []
+            if not domain.startswith(('http://', 'https://')):
+                issues.append("HTTPS проблемы возможны")
+            if 'unknown' in domain.lower():
+                issues.append("Домен не указан корректно")
+                base_score -= 10
+            
+            # Определяем оценку
+            if base_score >= 80:
+                grade = "Good"
+            elif base_score >= 60:
+                grade = "Average"
+            else:
+                grade = "Poor"
+            
+            return {
+                "success": True,
+                "agent": self.agent_id,
+                "result": {
+                    "technical_score": base_score,
+                    "audit_grade": grade,
+                    "domain": domain,
+                    "critical_issues": issues,
+                    "note": "Базовый аудит без OpenAI (fallback режим)",
+                    "priority_fixes": ["Настроить HTTPS", "Оптимизировать скорость загрузки"]
+                },
+                "fallback_mode": True,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "agent": self.agent_id,
+                "error": f"Fallback audit failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
             if task_type == 'full_technical_audit':
                 # Базовый аудит
                 result = await self._conduct_full_technical_audit(task_data)
