@@ -1,65 +1,64 @@
-# Основные фреймворки для AI-архитекторов
-langgraph>=0.0.40
-langchain>=0.1.0
-langchain-openai>=0.0.8
-langchain-community>=0.0.20
+# Основные фреймворки для AI-архитекторов (фиксированные версии)
+langgraph==0.0.45
+langchain==0.1.7
+langchain-openai==0.0.8
+langchain-community==0.0.25
 
 # Веб-фреймворк и API
-fastapi>=0.104.0
-uvicorn[standard]>=0.24.0
-pydantic>=2.5.0
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.3
 
 # WebSocket поддержка
-websockets>=12.0
-python-multipart>=0.0.6
+websockets==12.0
+python-multipart==0.0.6
 
 # HTTP клиент для MCP
-httpx>=0.25.0
-aiohttp>=3.9.0
+httpx==0.26.0
+aiohttp==3.9.1
 
 # Векторные базы данных для знаний
-faiss-cpu>=1.7.4
-langchain-community>=0.0.20
-openai>=1.0.0
+faiss-cpu==1.7.4
+openai==1.6.1
 
 # Обработка данных и ML
-pandas>=2.1.0
-numpy>=1.24.0
-scikit-learn>=1.3.0
+pandas==2.1.4
+numpy==1.25.2
+scikit-learn==1.3.2
 
 # Веб-скрапинг и парсинг
-requests>=2.31.0
-beautifulsoup4>=4.12.0
+requests==2.31.0
+beautifulsoup4==4.12.2
 
 # SEO AI Models интеграция
-playwright>=1.40.0
-spacy>=3.7.0
-nltk>=3.8.0
-gensim>=4.3.0
-google-search-results>=2.4.2
-markdown>=3.5.0
-tqdm>=4.66.0
-colorlog>=6.8.0
-joblib>=1.3.0
+playwright==1.40.0
+spacy==3.7.2
+nltk==3.8.1
+gensim==4.3.2
+google-search-results==2.4.2
+markdown==3.5.2
+tqdm==4.66.1
+colorlog==6.8.0
+joblib==1.3.2
 
 # Базы данных
-sqlalchemy>=2.0.0
-asyncpg>=0.29.0
-alembic>=1.13.0
-redis>=5.0.0
-psycopg2-binary>=2.9.9
+sqlalchemy==2.0.25
+asyncpg==0.29.0
+alembic==1.13.1
+redis==5.0.1
+psycopg2-binary==2.9.9
 
 # Аутентификация и безопасность
-PyJWT>=2.8.0
-passlib[bcrypt]>=1.7.4
-python-jose[cryptography]>=3.3.0
-bleach>=6.1.0
+PyJWT==2.8.0
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+bleach==6.1.0
 
 # Мониторинг и логирование
-python-json-logger>=2.0.7
-psutil>=5.9.0
-prometheus-client>=0.19.0
+python-json-logger==2.0.7
+psutil==5.9.6
+prometheus-client==0.19.0
 
 # Развертывание и мониторинг
-python-dotenv>=1.0.0
-structlog>=23.2.0
+python-dotenv==1.0.0
+structlog==23.2.0

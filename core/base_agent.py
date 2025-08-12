@@ -5,10 +5,73 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, TYPE_CHECKING
 from datetime import datetime
+import asyncio
+import time
+import logging
+from functools import wraps
 
 # Избегаем circular imports
 if TYPE_CHECKING:
     from core.mcp.data_provider import MCPDataProvider
+
+logger = logging.getLogger(__name__)
+
+
+def with_retry(max_attempts: int = 3, delay: float = 1.0, backoff: float = 2.0, timeout: float = 30.0):
+    """
+    Декоратор для retry логики с exponential backoff и timeout
+    
+    Args:
+        max_attempts: Максимальное количество попыток
+        delay: Начальная задержка между попытками (секунды)
+        backoff: Множитель для exponential backoff
+        timeout: Общий timeout для всех попыток (секунды)
+    """
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            start_time = time.time()
+            current_delay = delay
+            
+            for attempt in range(max_attempts):
+                # Проверяем общий timeout
+                if time.time() - start_time > timeout:
+                    raise TimeoutError(f"Operation timed out after {timeout}s")
+                
+                try:
+                    # Выполняем функцию с индивидуальным timeout
+                    remaining_timeout = timeout - (time.time() - start_time)
+                    if remaining_timeout <= 0:
+                        raise TimeoutError("No time remaining for operation")
+                    
+                    result = await asyncio.wait_for(func(*args, **kwargs), timeout=remaining_timeout)
+                    return result
+                    
+                except (asyncio.TimeoutError, TimeoutError) as e:
+                    if attempt == max_attempts - 1:
+                        logger.error(f"Final timeout in {func.__name__} after {attempt + 1} attempts: {str(e)}")
+                        raise TimeoutError(f"Operation failed after {max_attempts} attempts: timeout")
+                    
+                    logger.warning(f"Timeout in {func.__name__} (attempt {attempt + 1}), retrying...")
+                    
+                except Exception as e:
+                    if attempt == max_attempts - 1:
+                        logger.error(f"Final error in {func.__name__} after {attempt + 1} attempts: {str(e)}")
+                        raise
+                    
+                    # Логируем ошибку и продолжаем
+                    logger.warning(f"Error in {func.__name__} (attempt {attempt + 1}): {str(e)}, retrying...")
+                
+                # Ждем перед следующей попыткой (если это не последняя попытка)
+                if attempt < max_attempts - 1:
+                    await asyncio.sleep(current_delay)
+                    current_delay *= backoff
+            
+            # Этот код не должен выполняться, но на всякий случай
+            raise RuntimeError(f"Unexpected end of retry loop in {func.__name__}")
+        
+        return wrapper
+    return decorator
 
 
 class AgentMetrics:
@@ -56,7 +119,7 @@ class AgentMetrics:
 
 
 class BaseAgent(ABC):
-    """Базовый класс для всех AI-агентов с поддержкой MCP"""
+    """Базовый класс для всех AI-агентов с поддержкой MCP, retries и timeouts"""
     
     def __init__(self, 
                  agent_id: str,
@@ -67,6 +130,12 @@ class BaseAgent(ABC):
                  model_name: Optional[str] = None,
                  mcp_enabled: bool = False,
                  rag_enabled: bool = True,
+                 # Retry и timeout настройки
+                 retry_attempts: int = 3,
+                 retry_delay: float = 1.0,
+                 retry_backoff: float = 2.0,
+                 task_timeout: float = 30.0,
+                 data_timeout: float = 15.0,
                  **kwargs):  # Принимаем дополнительные параметры
         self.agent_id = agent_id
         self.name = name
@@ -81,6 +150,15 @@ class BaseAgent(ABC):
         self.rag_enabled = rag_enabled
         self.knowledge_context = ""  # Контекст знаний для текущей задачи
         
+        # Retry и timeout конфигурация
+        self.retry_config = {
+            "max_attempts": retry_attempts,
+            "delay": retry_delay,
+            "backoff": retry_backoff,
+            "task_timeout": task_timeout,
+            "data_timeout": data_timeout
+        }
+        
         # Дополнительные параметры сохраняем в context
         self.context.update(kwargs)
         
@@ -92,10 +170,65 @@ class BaseAgent(ABC):
         if self.rag_enabled:
             self._initialize_rag_knowledge()
     
+    async def process_task_with_retry(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Обертка для выполнения задач с retry логикой и метриками
+        
+        Args:
+            task_data: Данные задачи для обработки
+            
+        Returns:
+            Dict с результатами обработки
+        """
+        start_time = time.time()
+        
+        # Применяем retry с конфигурацией агента
+        retry_decorator = with_retry(
+            max_attempts=self.retry_config["max_attempts"],
+            delay=self.retry_config["delay"],
+            backoff=self.retry_config["backoff"],
+            timeout=self.retry_config["task_timeout"]
+        )
+        
+        try:
+            # Выполняем задачу с retry логикой
+            result = await retry_decorator(self.process_task)(task_data)
+            
+            # Записываем успешные метрики
+            processing_time = time.time() - start_time
+            self.metrics.record_task(True, processing_time)
+            
+            # Добавляем метаданные в результат
+            if isinstance(result, dict):
+                result.update({
+                    "processing_time": processing_time,
+                    "retry_attempts_used": 1,  # Минимум 1 попытка
+                    "success": True
+                })
+            
+            return result
+            
+        except Exception as e:
+            # Записываем метрики ошибки
+            processing_time = time.time() - start_time
+            self.metrics.record_task(False, processing_time)
+            
+            logger.error(f"Task failed in agent {self.agent_id} after retries: {str(e)}")
+            
+            # Возвращаем структурированный ответ об ошибке
+            return {
+                "success": False,
+                "agent": self.agent_id,
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "processing_time": processing_time,
+                "timestamp": datetime.now().isoformat()
+            }
+    
     @abstractmethod
     async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Основная логика обработки задачи агентом
+        Основная логика обработки задачи агентом (должна быть переопределена в наследниках)
         
         Args:
             task_data: Данные задачи для обработки
@@ -109,8 +242,13 @@ class BaseAgent(ABC):
         """
         pass
     
+    @with_retry()
     async def get_seo_data(self, domain: str, parameters: Dict[str, Any] = None):
-        """Получение SEO данных через провайдер (MCP-compatible)"""
+        """Получение SEO данных через провайдер с retry логикой (MCP-compatible)"""
+        return await self._get_seo_data_internal(domain, parameters)
+    
+    async def _get_seo_data_internal(self, domain: str, parameters: Dict[str, Any] = None):
+        """Внутренний метод получения SEO данных"""
         if self.mcp_enabled and hasattr(self.data_provider, 'get_seo_data'):
             return await self.data_provider.get_seo_data(domain, parameters or {})
         elif hasattr(self.data_provider, 'get_seo_data'):
@@ -119,8 +257,13 @@ class BaseAgent(ABC):
             # Fallback для совместимости
             return {"domain": domain, "source": "fallback", "status": "no_provider"}
     
+    @with_retry()
     async def get_client_data(self, client_id: str, parameters: Dict[str, Any] = None):
-        """Получение данных клиента через провайдер (MCP-compatible)"""
+        """Получение данных клиента через провайдер с retry логикой (MCP-compatible)"""
+        return await self._get_client_data_internal(client_id, parameters)
+    
+    async def _get_client_data_internal(self, client_id: str, parameters: Dict[str, Any] = None):
+        """Внутренний метод получения данных клиента"""
         if self.mcp_enabled and hasattr(self.data_provider, 'get_client_data'):
             return await self.data_provider.get_client_data(client_id, parameters or {})
         elif hasattr(self.data_provider, 'get_client_data'):
@@ -129,8 +272,13 @@ class BaseAgent(ABC):
             # Fallback для совместимости
             return {"client_id": client_id, "source": "fallback", "status": "no_provider"}
     
+    @with_retry()
     async def get_competitive_data(self, domain: str, competitors: list, parameters: Dict[str, Any] = None):
-        """Получение конкурентных данных через MCP провайдер"""
+        """Получение конкурентных данных с retry логикой через MCP провайдер"""
+        return await self._get_competitive_data_internal(domain, competitors, parameters)
+    
+    async def _get_competitive_data_internal(self, domain: str, competitors: list, parameters: Dict[str, Any] = None):
+        """Внутренний метод получения конкурентных данных"""
         if self.mcp_enabled and hasattr(self.data_provider, 'get_competitive_data'):
             return await self.data_provider.get_competitive_data(domain, competitors, parameters or {})
         else:
@@ -143,7 +291,7 @@ class BaseAgent(ABC):
             }
     
     def get_health_status(self) -> Dict[str, Any]:
-        """Информация о здоровье агента"""
+        """Информация о здоровье агента с retry конфигурацией"""
         health_status = {
             "agent_id": self.agent_id,
             "name": self.name,
@@ -152,7 +300,8 @@ class BaseAgent(ABC):
             "model": self.model_name,
             "metrics": self.metrics.to_dict(),
             "mcp_enabled": self.mcp_enabled,
-            "rag_enabled": self.rag_enabled
+            "rag_enabled": self.rag_enabled,
+            "retry_config": self.retry_config
         }
         
         # Добавляем MCP статус если включен
