@@ -1,0 +1,14 @@
+# AI SEO Architects - Notebook Requirements
+# Установите эти зависимости для корректной работы notebook
+
+openai==1.54.3
+langchain==0.2.16
+langchain-openai==0.1.25
+pydantic==2.9.2
+faiss-cpu==1.8.0
+python-dotenv==1.0.1
+nest-asyncio==1.6.0
+
+# Дополнительные зависимости для расширенной функциональности
+numpy>=1.21.0
+asyncio-timeout>=4.0.0
