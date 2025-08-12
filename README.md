@@ -1,8 +1,8 @@
 # 🤖 AI SEO Architects
 
 > **Enterprise-готовая мультиагентная система для автоматизации SEO-агентства**  
-> Production-архитектура: 14 AI-агентов + FastAPI Backend + Real-time Dashboard + Docker Infrastructure + RAG-система  
-> **Статус: 100% готовность к production deployment + Enterprise Security + векторная база знаний** ✅
+> Production-архитектура: 14 AI-агентов + Retry механизмы + FastAPI Backend + Real-time Dashboard + Docker Infrastructure + RAG-система  
+> **Статус: 100% готовность к VDS deployment + Enterprise Security + Отказоустойчивость** ✅
 
 ## 📋 Описание проекта
 
@@ -10,13 +10,15 @@ AI SEO Architects — это современная мультиагентная
 
 ### 🎯 **Ключевые возможности:**
 - **🚀 FastAPI Backend** - REST API (25+ endpoints) + Real-time Dashboard + WebSocket поддержка
+- **🔄 Retry механизмы** - Exponential backoff + timeout handling + error recovery во всех агентах
+- **📦 Стабильные зависимости** - Фиксированные версии библиотек для предотвращения конфликтов
 - **🔒 Enterprise Security** - JWT Authentication + RBAC + Input Validation + Rate Limiting + SQL Injection Protection
 - **🐳 Production Infrastructure** - Docker Compose (PostgreSQL, Redis, Nginx, Prometheus, Grafana)
 - **🇷🇺 RAG-система** - 14 русскоязычных баз знаний (~700K токенов) + FAISS векторизация + OpenAI Embeddings
 - **📊 Monitoring & Analytics** - Real-time метрики + Prometheus + Grafana dashboards + Health checks
 - **🤖 14 AI-агентов** - Трёхуровневая иерархия (Executive/Management/Operational) для полной автоматизации
 - **🔗 MCP Integration** - Model Context Protocol + интеграция с внешними системами
-- **⚡ Deployment Ready** - One-command развертывание на VDS/VPS + Kubernetes готовность
+- **⚡ VDS Ready** - One-command развертывание на VDS/VPS + полная отказоустойчивость
 
 ## 🏗️ Архитектура системы
 
@@ -75,7 +77,7 @@ python run_api.py
 # 🔍 Health: http://localhost:8000/health
 ```
 
-#### Option 2: Production Docker (2 минуты)
+#### Option 2: Production VDS/Docker (2 минуты) - **РЕКОМЕНДУЕМО**
 ```bash
 git clone https://github.com/Andrew821667/ai-seo-architects.git
 cd ai-seo-architects
@@ -89,20 +91,28 @@ JWT_SECRET_KEY=your-super-secure-jwt-key
 GRAFANA_PASSWORD=your-grafana-password
 EOF
 
-# 2. 🐳 Запуск всей инфраструктуры
+# 2. 🐳 Запуск всей production инфраструктуры
 docker-compose up -d
 
+# 3. ✅ Проверка статуса всех сервисов
+docker-compose ps
+curl http://localhost/health
+
 # ✅ Production инфраструктура развернута:
-# - AI SEO API: http://localhost:8000 (Nginx proxy)
-# - Grafana Monitoring: http://localhost:3000
+# - AI SEO API: http://localhost/ (Nginx proxy + SSL ready)
+# - Real-time Dashboard: http://localhost/dashboard
+# - Grafana Monitoring: http://localhost:3000 (admin/admin)
 # - Prometheus Metrics: http://localhost:9090  
 # - PostgreSQL: localhost:5432
 # - Redis: localhost:6379
 # - ChromaDB: localhost:8001
 ```
 
-#### Option 3: Быстрое тестирование системы
+#### Option 3: Быстрое тестирование системы с retry механизмами
 ```bash
+# Комплексное тестирование с retry логикой
+python quick_comprehensive_test.py
+
 # Тестирование русскоязычных агентов с RAG
 python test_russian_agents_integration.py
 

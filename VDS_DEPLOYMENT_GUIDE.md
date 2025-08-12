@@ -1,11 +1,11 @@
 # 🚀 AI SEO Architects - Production VDS/VPS Deployment Guide
 
 > **Enterprise-ready руководство по развертыванию на production серверах**  
-> Поддержка Ubuntu 22.04+, CentOS 8+, Debian 12+, RHEL 8+
+> Поддержка Ubuntu 22.04+, CentOS 8+, Debian 12+, RHEL 8+ с retry механизмами и полной отказоустойчивостью
 
 **Время развертывания:** 15-30 минут  
 **Уровень сложности:** Intermediate to Advanced  
-**Production готовность:** 100%
+**Production готовность:** 100% + Retry механизмы**
 
 ---
 
@@ -18,11 +18,12 @@
 5. [🔒 SSL Setup](#ssl-setup)
 6. [🌐 Domain Configuration](#domain-configuration)
 7. [📋 Environment Setup](#environment-setup)
-8. [🚀 Deployment Process](#deployment-process)
-9. [📊 Monitoring Setup](#monitoring-setup)
-10. [🛡️ Security Hardening](#security-hardening)
-11. [📈 Performance Optimization](#performance-optimization)
-12. [🔧 Maintenance & Updates](#maintenance-updates)
+8. [🔄 Retry Configuration](#retry-configuration)
+9. [🚀 Deployment Process](#deployment-process)
+10. [📊 Monitoring Setup](#monitoring-setup)
+11. [🛡️ Security Hardening](#security-hardening)
+12. [📈 Performance Optimization](#performance-optimization)
+13. [🔧 Maintenance & Updates](#maintenance-updates)
 
 ---
 
