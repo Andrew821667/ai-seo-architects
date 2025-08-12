@@ -35,6 +35,7 @@ class LinkBuildingAgent(BaseAgent):
         super().__init__(
             agent_id="link_building_agent", 
             name="Link Building Agent",
+            agent_level="operational",
             data_provider=data_provider,
             **kwargs
         )
@@ -532,6 +533,98 @@ class LinkBuildingAgent(BaseAgent):
             "agent": self.name,
             "confidence": round(random.uniform(0.80, 0.92), 2)
         }
+    
+    async def _fallback_link_analysis(self, input_data: Dict[str, Any], task_type: str) -> Dict[str, Any]:
+        """Fallback логика link building анализа без LLM"""
+        try:
+            domain = input_data.get('domain', 'unknown-domain.com')
+            industry = input_data.get('industry', 'general')
+            
+            # Базовый link building скор
+            base_score = 60  # Средний скор
+            
+            # Простые корректировки на основе данных
+            current_da = input_data.get('domain_authority', 0)
+            if current_da > 50:
+                base_score += 15
+            elif current_da > 30:
+                base_score += 10
+            
+            current_backlinks = input_data.get('current_backlinks', 0)
+            if current_backlinks > 1000:
+                base_score += 10
+            elif current_backlinks > 100:
+                base_score += 5
+            
+            # Отраслевые бонусы
+            industry_bonuses = {
+                'fintech': 5,
+                'ecommerce': 4,
+                'b2b_services': 3,
+                'healthcare': 2
+            }
+            base_score += industry_bonuses.get(industry.lower(), 0)
+            
+            # Определяем здоровье профиля
+            if base_score >= 85:
+                health = "Excellent"
+                prospects = 150
+                success_rate = 0.25
+            elif base_score >= 70:
+                health = "Good"
+                prospects = 120
+                success_rate = 0.20
+            elif base_score >= 55:
+                health = "Needs Improvement"
+                prospects = 80
+                success_rate = 0.15
+            elif base_score >= 40:
+                health = "Poor"
+                prospects = 50
+                success_rate = 0.10
+            else:
+                health = "Critical"
+                prospects = 30
+                success_rate = 0.08
+            
+            # Базовые рекомендации
+            actions = [
+                "Провести полный аудит текущего ссылочного профиля",
+                "Создать список качественных prospect доменов",
+                "Разработать персонализированные outreach шаблоны"
+            ]
+            
+            if base_score < 50:
+                actions.insert(0, "Очистить токсичные ссылки (приоритет)")
+            
+            return {
+                "success": True,
+                "agent": self.agent_id,
+                "result": {
+                    "link_building_score": base_score,
+                    "link_profile_health": health,
+                    "domain": domain,
+                    "industry": industry,
+                    "prospects_available": prospects,
+                    "expected_success_rate": success_rate,
+                    "recommended_actions": actions,
+                    "note": "Результат получен без OpenAI (fallback режим)",
+                    "monthly_capacity": {
+                        "realistic_links": min(self.target_monthly_links, int(prospects * success_rate)),
+                        "budget_required": f"{self.target_monthly_links * 25000:,} ₽"
+                    }
+                },
+                "fallback_mode": True,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "agent": self.agent_id,
+                "error": f"Fallback link analysis failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
 
     # Helper methods
 

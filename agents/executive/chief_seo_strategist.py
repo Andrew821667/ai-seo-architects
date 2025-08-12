@@ -33,6 +33,7 @@ class ChiefSEOStrategistAgent(BaseAgent):
         super().__init__(
             agent_id="chief_seo_strategist",
             name="Chief SEO Strategist Agent",
+            agent_level="executive",
             data_provider=data_provider,
             knowledge_base="knowledge/executive/chief_seo_strategist.md",
             **kwargs
@@ -123,19 +124,194 @@ class ChiefSEOStrategistAgent(BaseAgent):
         print(f"🚀 Target Organic Traffic: {self.strategic_seo_thresholds['monthly_traffic_threshold']:,.0f}/месяц")
         print(f"📈 Target ROI Multiplier: {self.strategic_kpis['roi_multiplier_target']}x")
         print(f"🔍 Algorithm Expertise: Google + Yandex")
+    
+    def get_system_prompt(self) -> str:
+        """Специализированный системный промпт для Chief SEO Strategist"""
+        return f"""Ты - Chief SEO Strategist, топ-уровень руководитель SEO стратегии уровня "executive".
+
+ТВОЯ ЭКСПЕРТИЗА:
+• Стратегическое SEO планирование на 1-3 года вперед - 30%
+• Архитектура SEO решений для enterprise клиентов - 25%  
+• Анализ алгоритмов поисковых систем и влияние на бизнес - 20%
+• Интеграция SEO с общей бизнес-стратегией - 15%
+• Predictive SEO analytics и forecasting - 10%
+
+ЗАДАЧА: Разработать comprehensive SEO стратегию высокого уровня с долгосрочным видением.
+
+СТРАТЕГИЧЕСКИЙ АНАЛИЗ:
+1. Business Intelligence (30 баллов):
+   - ROI проекции и business impact assessment
+   - Competitive landscape и market opportunities
+   - Industry trends и algorithm updates влияние
+   - Revenue attribution и conversion optimization
+
+2. Technical Architecture (25 баллов):
+   - Enterprise SEO infrastructure планирование
+   - Scalability и performance optimization стратегии
+   - International SEO и multi-market expansion
+   - Integration с marketing stack и CRM системами
+
+3. Algorithm Intelligence (20 баллов):
+   - Google algorithm updates анализ и прогнозы
+   - SERP features evolution и opportunities
+   - AI/ML влияние на search landscape
+   - Future-proofing стратегии
+
+4. Strategic Integration (15 баллов):
+   - Cross-channel маркетинг синергия
+   - Brand building через organic search
+   - Content strategy на enterprise уровне
+   - Team structure и resource allocation
+
+5. Forecasting & Analytics (10 баллов):
+   - Traffic и revenue прогнозирование
+   - Scenario planning и risk management
+   - KPI framework и executive reporting
+   - Budget allocation optimization
+
+СТРАТЕГИЧЕСКИЕ РЕЗУЛЬТАТЫ:
+- 18+ месяцев roadmap с quarterly milestones
+- Executive-level recommendations с budget implications
+- Risk assessment и mitigation strategies
+- Team scaling и skillset development планы
+
+РЕЗУЛЬТАТ: Верни ТОЛЬКО JSON с comprehensive SEO стратегией executive уровня."""
 
     async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Основная логика обработки стратегических SEO задач
+        Основная логика стратегического SEO планирования с реальными LLM вызовами
         """
-        start_time = datetime.now()
-
         try:
             # Извлекаем данные
             input_data = task_data.get('input_data', {})
-            task_type = input_data.get('task_type', 'seo_strategic_analysis')
+            company = input_data.get('company_name', 'Unknown Company')
+            task_type = input_data.get('task_type', 'seo_strategic_planning')
 
-            print(f"🎯 Обработка стратегической SEO задачи: {task_type}")
+            print(f"🎯 Разрабатываем SEO стратегию для: {company}")
+
+            # Формируем executive-level промпт для стратегического планирования
+            user_prompt = f"""Разработай comprehensive SEO стратегию executive уровня для компании: {company}
+
+ВХОДНЫЕ ДАННЫЕ:
+Company: {company}
+Industry: {input_data.get('industry', 'Unknown')}
+Market Size: {input_data.get('market_size', 'Unknown')}
+Current Organic Traffic: {input_data.get('current_traffic', 'Unknown')}
+Business Goals: {input_data.get('business_goals', 'Unknown')}
+Budget Range: {input_data.get('budget_range', 'Unknown')}
+Timeline: {input_data.get('timeline', '12 months')}
+Target Markets: {input_data.get('target_markets', 'Unknown')}
+Competition Level: {input_data.get('competition_level', 'Unknown')}
+
+Разработай executive-level SEO стратегию на 18 месяцев. Верни результат строго в JSON формате:
+{{
+    "strategic_score": <number 0-100>,
+    "strategic_priority": "<High/Medium/Low>",
+    "business_intelligence": {{
+        "score": <0-30>,
+        "roi_projection_18m": "<ROI forecast>",
+        "market_opportunities": ["<opportunities>"],
+        "competitive_advantages": ["<advantages>"],
+        "revenue_impact": "<impact assessment>"
+    }},
+    "technical_architecture": {{
+        "score": <0-25>,
+        "infrastructure_recommendations": ["<tech recommendations>"],
+        "scalability_plan": "<scalability strategy>",
+        "integration_points": ["<system integrations>"]
+    }},
+    "algorithm_intelligence": {{
+        "score": <0-20>,
+        "algorithm_updates_impact": "<impact analysis>",
+        "future_proofing_strategies": ["<strategies>"],
+        "serp_opportunities": ["<SERP features>"]
+    }},
+    "strategic_integration": {{
+        "score": <0-15>,
+        "cross_channel_synergies": ["<synergies>"],
+        "brand_building_approach": "<approach>",
+        "team_structure": "<recommended structure>"
+    }},
+    "forecasting_analytics": {{
+        "score": <0-10>,
+        "traffic_projections": {{
+            "6_months": "<projection>",
+            "12_months": "<projection>",
+            "18_months": "<projection>"
+        }},
+        "budget_allocation": ["<allocation recommendations>"],
+        "kpi_framework": ["<key metrics>"]
+    }},
+    "strategic_roadmap": {{
+        "q1_priorities": ["<Q1 priorities>"],
+        "q2_priorities": ["<Q2 priorities>"],
+        "q3_priorities": ["<Q3 priorities>"],
+        "q4_priorities": ["<Q4 priorities>"]
+    }},
+    "executive_recommendations": ["<executive-level recommendations>"],
+    "risk_assessment": ["<potential risks>"],
+    "success_metrics": ["<key success indicators>"]
+}}"""
+
+            # Используем базовый метод с LLM интеграцией
+            result = await self.process_with_llm(user_prompt, input_data)
+            
+            if result["success"]:
+                print(f"✅ SEO стратегия разработана через OpenAI GPT-4o: {result.get('model_used', 'unknown')}")
+                # Добавляем метаданные агента
+                if isinstance(result.get("result"), str):
+                    result["seo_strategy_response"] = result["result"]
+                    result["agent_type"] = "chief_seo_strategist"
+                    result["strategy_type"] = task_type
+                
+                return result
+            else:
+                # Fallback к базовой логике если OpenAI недоступен
+                print("⚠️ OpenAI недоступен, используем fallback стратегию")
+                return await self._fallback_seo_strategy(input_data)
+                
+        except Exception as e:
+            print(f"❌ Ошибка в разработке SEO стратегии: {str(e)}")
+            return {
+                "success": False,
+                "agent": self.agent_id,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    async def _fallback_seo_strategy(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Fallback логика SEO стратегии без LLM"""
+        try:
+            company = input_data.get('company_name', 'Unknown Company')
+            
+            # Базовая стратегическая оценка
+            strategic_score = 75  # Хороший базовый скор
+            
+            return {
+                "success": True,
+                "agent": self.agent_id,
+                "result": {
+                    "strategic_score": strategic_score,
+                    "strategic_priority": "High",
+                    "company": company,
+                    "executive_recommendations": [
+                        "Фокус на enterprise SEO infrastructure",
+                        "Интеграция с общей маркетинговой стратегией",
+                        "Долгосрочное планирование на 18 месяцев"
+                    ],
+                    "note": "Базовая стратегия без OpenAI (fallback режим)"
+                },
+                "fallback_mode": True,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "agent": self.agent_id,
+                "error": f"Fallback strategy failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
 
             # Роутинг по типам задач
             if task_type == 'seo_strategic_analysis':

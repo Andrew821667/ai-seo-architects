@@ -21,10 +21,11 @@ class ContentStrategyAgent(BaseAgent):
     TF-IDF анализ, топиковая кластеризация, content calendar планирование
     """
     
-    def __init__(self, data_provider, **kwargs):
+    def __init__(self, data_provider=None, **kwargs):
         super().__init__(
             agent_id="content_strategy_agent",
             name="Content Strategy Agent",
+            agent_level="operational",
             data_provider=data_provider,
             **kwargs
         )
@@ -58,79 +59,298 @@ class ContentStrategyAgent(BaseAgent):
         logger.info(f"📅 Planning Horizon: {self.content_config['content_calendar_horizon']} дней")
         logger.info(f"🏭 Industries: {len(self.industry_specialization)} вертикалей")
     
+    def get_system_prompt(self) -> str:
+        """Специализированный системный промпт для контентной стратегии"""
+        return f"""Ты - экспертный Content Strategy Agent, специалист по комплексной контентной стратегии и SEO-оптимизации.
+
+ТВОЯ ЭКСПЕРТИЗА:
+• Keyword Research & Semantic Analysis - 30%
+• Content Strategy & Planning - 25%
+• E-E-A-T Optimization (экспертность, авторитет, достоверность) - 20%
+• Topic Clustering & Content Architecture - 15%
+• Competitor Content Analysis - 10%
+
+ЗАДАЧА: Разработать комплексную контентную стратегию, оптимизированную под современные SEO реквазиты.
+
+МЕТОДОЛОГИЯ КОНТЕНТНОЙ СТРАТЕГИИ:
+1. Keyword Research (30 баллов):
+   - Semantic core development (0-10)
+   - Long-tail keyword identification (0-8)
+   - Search intent analysis (0-7)
+   - Keyword difficulty ассессмент (0-5)
+
+2. Content Strategy (25 баллов):
+   - Content pillars definition (0-8)
+   - Content format strategy (0-7)
+   - Content calendar planning (0-5)
+   - Content distribution strategy (0-5)
+
+3. E-E-A-T Optimization (20 баллов):
+   - Expertise demonstration (0-7)
+   - Authority building стратегия (0-6)
+   - Trustworthiness signals (0-4)
+   - Author credibility (0-3)
+
+4. Topic Architecture (15 баллов):
+   - Topic clustering methodology (0-6)
+   - Content silo structure (0-4)
+   - Internal linking strategy (0-3)
+   - Hub и spoke architecture (0-2)
+
+5. Competitive Analysis (10 баллов):
+   - Content gap identification (0-4)
+   - Competitor content quality (0-3)
+   - Market opportunity analysis (0-3)
+
+КОНФИГУРАЦИЯ СТРАТЕГИИ:
+- Keyword Research глубина: {self.content_config['keyword_research_depth']}
+- E-E-A-T порог качества: {self.content_config['content_quality_threshold']}+
+- Размер topic cluster: {self.content_config['topic_cluster_size']} статей
+- Горизонт планирования: {self.content_config['content_calendar_horizon']} дней
+- Количество конкурентов: {self.content_config['competitor_analysis_depth']}
+
+ОТРАСЛЕВЫЕ СПЕЦИАЛИЗАЦИИ:
+• FinTech: +15 (экспертный траст контент)
+• E-commerce: +12 (product-focused контент)
+• SaaS: +10 (technical экспертиза)
+• Healthcare: +8 (YMYL комплаенс)
+• B2B Consulting: +6 (thought leadership)
+
+ПОДДЕРЖИВАЕМЫЕ ТИПЫ КОНТЕНТА:
+{', '.join(self.content_types)}
+
+РЕЗУЛЬТАТ: Верни ТОЛЬКО JSON с детальной контентной стратегией, keyword research, topic clustering и actionable рекомендациями."""
+    
     async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Основная логика обработки задач Content Strategy Agent
+        Основная логика контентной стратегии с реальными LLM вызовами
         
-        Поддерживаемые типы задач:
-        - keyword_research: Комплексное исследование ключевых слов
-        - content_audit: Аудит существующего контента
-        - content_strategy: Разработка контентной стратегии
-        - topic_clustering: Кластеризация тем
-        - content_calendar: Планирование контент-календаря
-        - competitor_content_analysis: Анализ контента конкурентов
-        - eeat_optimization: E-E-A-T оптимизация
+        Args:
+            task_data: Данные задачи с информацией о сайте, отрасли и целях
+            
+        Returns:
+            Dict с комплексной контентной стратегией от OpenAI
         """
-        
-        start_time = datetime.now()
-        
         try:
-            # Извлекаем данные задачи
+            # Извлекаем входные данные
             input_data = task_data.get("input_data", {})
-            task_type = input_data.get("task_type", "content_strategy")
+            task_type = input_data.get("task_type", "comprehensive_content_strategy")
             
-            logger.info(f"🎯 Обработка Content Strategy задачи: {task_type}")
+            logger.info(f"📝 Начинаем разработку контентной стратегии: {input_data.get('domain', 'Unknown')}, тип: {task_type}")
             
-            # Определяем тип обработки
-            if task_type == "keyword_research":
-                result = await self._process_keyword_research(input_data)
-            elif task_type == "content_audit":
-                result = await self._process_content_audit(input_data)
-            elif task_type == "content_strategy":
-                result = await self._process_content_strategy(input_data)
-            elif task_type == "topic_clustering":
-                result = await self._process_topic_clustering(input_data)
-            elif task_type == "content_calendar":
-                result = await self._process_content_calendar(input_data)
-            elif task_type == "competitor_content_analysis":
-                result = await self._process_competitor_analysis(input_data)
-            elif task_type == "eeat_optimization":
-                result = await self._process_eeat_optimization(input_data)
+            # Формируем специализированный промпт для контентной стратегии
+            user_prompt = f"""Разработай комплексную контентную стратегию с глубоким keyword research и E-E-A-T оптимизацией:
+
+ДАННЫЕ ПРОЕКТА:
+Domain: {input_data.get('domain', 'Unknown')}
+Industry: {input_data.get('industry', 'Unknown')}
+Business Model: {input_data.get('business_model', 'Unknown')}
+Target Audience: {input_data.get('target_audience', 'Unknown')}
+Content Strategy Type: {task_type}
+Current Content Volume: {input_data.get('current_content_pages', 'Unknown')}
+Competitors: {input_data.get('competitors', 'Unknown')}
+
+ЦЕЛИ И КОНТЕКСТ:
+Primary Goals: {input_data.get('primary_goals', 'Traffic growth & conversions')}
+Target Keywords: {input_data.get('target_keywords', 'Unknown')}
+Content Calendar Horizon: {self.content_config['content_calendar_horizon']} дней
+Budget Range: {input_data.get('budget_range', 'Unknown')}
+Team Resources: {input_data.get('team_resources', 'Unknown')}
+
+ТЕКУЩИЕ ПОКАЗАТЕЛИ:
+Current Organic Traffic: {input_data.get('current_traffic', 'Unknown')}
+Current Keyword Rankings: {input_data.get('current_rankings', 'Unknown')}
+Content Performance: {input_data.get('content_performance', 'Unknown')}
+E-E-A-T Status: {input_data.get('eeat_status', 'Unknown')}
+Domain Authority: {input_data.get('domain_authority', 'Unknown')}
+
+СОЗДАЙ всеобъемлющую контентную стратегию с keyword research, topic clustering и детальным планом. Верни результат строго в JSON формате:
+{{
+    "content_strategy_score": <number 0-100>,
+    "strategy_summary": "<executive summary стратегии>",
+    "keyword_research": {{
+        "primary_keywords": ["<ключевые слова по приоритету>"],
+        "long_tail_opportunities": ["<long-tail возможности>"],
+        "semantic_clusters": {{
+            "<cluster_name>": {{
+                "core_keyword": "<ядро кластера>",
+                "supporting_keywords": ["<поддерживающие ключи>"],
+                "search_volume": <number>,
+                "difficulty": <0-100>,
+                "search_intent": "<informational/commercial/transactional/navigational>"
+            }}
+        }},
+        "keyword_gaps": ["<неиспользуемые возможности>"]
+    }},
+    "content_pillars": {{
+        "pillar_1": {{
+            "title": "<название столпа>",
+            "description": "<описание>",
+            "target_keywords": ["<ключи>"],
+            "content_types": ["<типы контента>"],
+            "priority": "<high/medium/low>",
+            "estimated_traffic_potential": <number>
+        }}
+    }},
+    "content_calendar": {{
+        "month_1": ["<список контента>"],
+        "month_2": ["<список контента>"],
+        "month_3": ["<список контента>"]
+    }},
+    "eeat_optimization": {{
+        "expertise_strategy": "<стратегия демонстрации экспертизы>",
+        "authority_building": ["<способы повышения авторитета>"],
+        "trust_signals": ["<сигналы доверия>"],
+        "author_optimization": "<оптимизация авторских профилей>"
+    }},
+    "content_architecture": {{
+        "internal_linking_strategy": "<стратегия внутренней перелинковки>",
+        "content_silos": ["<структура силосов>"],
+        "hub_and_spoke": "<hub и spoke архитектура>",
+        "content_hierarchy": "<иерархия контента>"
+    }},
+    "competitive_analysis": {{
+        "content_gaps": ["<контентные гэпы>"],
+        "competitor_content_quality": "<оценка качества>",
+        "differentiation_opportunities": ["<возможности дифференциации>"],
+        "market_positioning": "<позиционирование на рынке>"
+    }},
+    "performance_projections": {{
+        "30_day_targets": "<цели на 30 дней>",
+        "90_day_targets": "<цели на 90 дней>",
+        "expected_traffic_growth": "<прогноз роста трафика>",
+        "roi_estimate": "<ожидаемая окупаемость>"
+    }},
+    "implementation_roadmap": {{
+        "phase_1": ["<первые шаги>"],
+        "phase_2": ["<вторая фаза>"],
+        "phase_3": ["<третья фаза>"]
+    }},
+    "resource_requirements": {{
+        "content_creators": <number>,
+        "seo_specialists": <number>,
+        "designers": <number>,
+        "monthly_budget_estimate": <number>
+    }},
+    "success_metrics": ["<ключевые метрики>"]
+}}"""
+
+            # Используем базовый метод с LLM интеграцией
+            result = await self.process_with_llm(user_prompt, input_data)
+            
+            if result["success"]:
+                logger.info(f"✅ Контентная стратегия создана через OpenAI: {result.get('model_used', 'unknown')}")
+                # Добавляем метаданные агента
+                if isinstance(result.get("result"), str):
+                    # Если результат строка, оборачиваем в структуру
+                    result["content_strategy_response"] = result["result"]
+                    result["agent_type"] = "content_strategy"
+                    result["strategy_type"] = task_type
+                    result["methodology"] = ["Keyword Research", "E-E-A-T Optimization", "Topic Clustering"]
+                
+                return result
             else:
-                # Default: комплексная контентная стратегия
-                result = await self._process_comprehensive_strategy(input_data)
-            
-            # Рассчитываем время выполнения
-            processing_time = (datetime.now() - start_time).total_seconds()
-            
-            # Записываем метрики
-            self.metrics.record_task(True, processing_time)
-            
-            logger.info(f"✅ Content Strategy задача завершена за {processing_time:.2f}с")
-            
-            return {
-                "success": True,
-                "agent": self.agent_id,
-                "task_type": task_type,
-                "result": result,
-                "processing_time": processing_time,
-                "timestamp": datetime.now().isoformat(),
-                "content_quality": self._assess_content_quality(result),
-                "strategy_confidence": self._calculate_strategy_confidence(result)
-            }
-            
+                # Fallback к базовой логике если OpenAI недоступен
+                logger.warning("⚠️ OpenAI недоступен, используем fallback контентную стратегию")
+                return await self._fallback_content_strategy(input_data, task_type)
+                
         except Exception as e:
-            processing_time = (datetime.now() - start_time).total_seconds()
-            self.metrics.record_task(False, processing_time)
-            
-            logger.error(f"❌ Ошибка в Content Strategy Agent: {str(e)}")
-            
+            logger.error(f"❌ Ошибка в контентной стратегии: {str(e)}")
             return {
                 "success": False,
                 "agent": self.agent_id,
                 "error": str(e),
-                "timestamp": datetime.now().isoformat(),
-                "processing_time": processing_time
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    async def _fallback_content_strategy(self, input_data: Dict[str, Any], task_type: str) -> Dict[str, Any]:
+        """Fallback логика контентной стратегии без LLM"""
+        try:
+            domain = input_data.get('domain', 'unknown-domain.com')
+            industry = input_data.get('industry', 'general')
+            business_model = input_data.get('business_model', 'B2B')
+            
+            # Базовый контентный скор
+            base_score = 70  # Средний скор
+            
+            # Отраслевые корректировки
+            industry_bonuses = {
+                'fintech': 8,
+                'ecommerce': 7,
+                'saas': 6,
+                'healthcare': 5,
+                'consulting': 4
+            }
+            base_score += industry_bonuses.get(industry.lower(), 0)
+            
+            # Базовые keyword clusters
+            keyword_clusters = {
+                f'{industry} услуги': {
+                    'keywords': [f'{industry} услуги', f'компания {industry}', f'{industry} консультации'],
+                    'priority': 'high'
+                },
+                f'{industry} решения': {
+                    'keywords': [f'{industry} решения', f'решения для {industry}', f'{industry} платформа'],
+                    'priority': 'medium'
+                }
+            }
+            
+            # Базовые content pillars
+            content_pillars = [
+                f'Экспертность в {industry}',
+                f'Инструменты и решения',
+                f'Индустриальные тренды',
+                f'Кейсы и опыт'
+            ]
+            
+            # Базовые рекомендации
+            recommendations = [
+                "Провести детальное keyword research",
+                f"Оптимизировать контент под {industry} специфику",
+                "Улучшить E-E-A-T сигналы",
+                "Создать структурированный контент-календарь"
+            ]
+            
+            return {
+                "success": True,
+                "agent": self.agent_id,
+                "result": {
+                    "content_strategy_score": base_score,
+                    "domain": domain,
+                    "industry": industry,
+                    "business_model": business_model,
+                    "strategy_type": task_type,
+                    "keyword_clusters": keyword_clusters,
+                    "content_pillars": content_pillars,
+                    "monthly_content_plan": {
+                        "blog_posts": 8,
+                        "guides": 2,
+                        "case_studies": 1,
+                        "landing_pages": 2
+                    },
+                    "eeat_recommendations": [
+                        "Добавить авторские профили экспертов",
+                        "Создать систему отзывов и кейсов",
+                        "Указать контактную информацию и политику конфиденциальности"
+                    ],
+                    "strategic_recommendations": recommendations,
+                    "note": "Контентная стратегия создана без OpenAI (fallback режим)",
+                    "content_config": {
+                        "quality_threshold": self.content_config['content_quality_threshold'],
+                        "planning_horizon": self.content_config['content_calendar_horizon'],
+                        "cluster_size": self.content_config['topic_cluster_size']
+                    }
+                },
+                "fallback_mode": True,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "agent": self.agent_id,
+                "error": f"Fallback content strategy failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
             }
     
     async def _process_keyword_research(self, input_data: Dict[str, Any]) -> Dict[str, Any]:

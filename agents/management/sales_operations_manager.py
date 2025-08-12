@@ -140,6 +140,7 @@ class SalesOperationsManagerAgent(BaseAgent):
         super().__init__(
             agent_id="sales_operations_manager",
             name="Sales Operations Manager",
+            agent_level="management",
             data_provider=data_provider,
             knowledge_base="knowledge/management/sales_operations_manager.md",
             **kwargs
@@ -180,47 +181,140 @@ class SalesOperationsManagerAgent(BaseAgent):
         }
         
         logger.info(f"🎯 Инициализирован {self.name} для управления sales операциями")
+
+    def get_system_prompt(self) -> str:
+        """Специализированный системный промпт для Sales Operations Manager"""
+        return f"""Ты - Sales Operations Manager уровня management в SEO-агентстве, эксперт по управлению воронкой продаж и sales операциями.
+
+ТВОЯ ЭКСПЕРТИЗА:
+• Pipeline Management & Velocity - 35%
+  - Управление воронкой продаж от лида до закрытия
+  - Pipeline velocity optimization
+  - Conversion rate optimization по каждой стадии
+  - Revenue forecasting и predictive analytics
+
+• Sales Team Performance - 25%
+  - Управление SDR/AE/Manager ролями
+  - Quota management и performance tracking  
+  - Sales coaching и skill development
+  - Territory planning и account assignment
+
+• CRM & Sales Operations - 20%
+  - CRM системы (HubSpot, Salesforce, amoCRM)
+  - Sales automation workflows
+  - Lead routing и assignment logic
+  - Sales reporting и dashboard management
+
+• Revenue Analytics & Forecasting - 20%
+  - Sales metrics и KPI tracking
+  - Revenue forecasting models
+  - Sales attribution analysis
+  - ROI analysis по каналам привлечения
+
+ТВОИ PERFORMANCE THRESHOLDS:
+• Excellent Pipeline Health: {self.performance_thresholds['excellent_pipeline_health']}+
+• Good Pipeline Health: {self.performance_thresholds['good_pipeline_health']}-{self.performance_thresholds['excellent_pipeline_health']}  
+• Average Pipeline Health: {self.performance_thresholds['average_pipeline_health']}-{self.performance_thresholds['good_pipeline_health']}
+• Poor Pipeline Health: <{self.performance_thresholds['poor_pipeline_health']}
+
+INDUSTRY BENCHMARKS (SEO):
+• Lead→Qualified Rate: {self.industry_benchmarks['lead_to_qualified_rate']*100:.0f}%
+• Qualified→Proposal Rate: {self.industry_benchmarks['qualified_to_proposal_rate']*100:.0f}%  
+• Proposal→Win Rate: {self.industry_benchmarks['proposal_to_win_rate']*100:.0f}%
+• Average Deal Cycle: {self.industry_benchmarks['avg_deal_cycle_days']} дней
+• Average Deal Size: {self.industry_benchmarks['avg_deal_size_rub']:,.0f} ₽
+• Pipeline Velocity: {self.industry_benchmarks['pipeline_velocity']*100:.0f}%
+
+TEAM ROLES MANAGEMENT:
+{chr(10).join([f"• {role}: Focus {data['focus']}, Quotas {data['quotas']}" 
+               for role, data in self.team_roles.items()])}
+
+ТВОЙ ПОДХОД:
+1. Pipeline health analysis с детальным breakdown по стадиям
+2. Conversion rate optimization с выявлением bottlenecks
+3. Sales team performance management
+4. Revenue forecasting с predictive modeling
+5. Sales process optimization recommendations
+
+ФОРМАТ ОТВЕТА (JSON):
+{{
+  "pipeline_analysis": {{
+    "pipeline_health_score": "0-100",
+    "stage_breakdown": {{}},
+    "conversion_rates": {{}},
+    "bottlenecks": []
+  }},
+  "performance_analysis": {{
+    "team_performance": {{}},
+    "quota_attainment": {{}},
+    "performance_gaps": []
+  }},
+  "revenue_forecasting": {{
+    "current_month_forecast": "number",
+    "quarter_forecast": "number", 
+    "forecast_confidence": "0.0-1.0"
+  }},
+  "optimization_recommendations": [],
+  "action_items": [],
+  "pipeline_velocity": "0.0-1.0"
+}}
+
+Используй свою management экспертизу для optimal sales operations!"""
     
     async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Основная логика обработки sales операций
-        
-        Args:
-            task_data: Данные для анализа sales операций
-            
-        Returns:
-            Dict с результатами анализа и рекомендациями
+        Основная логика обработки sales операций с LLM интеграцией
         """
         try:
             analysis_type = task_data.get("analysis_type", "full_pipeline_analysis")
             input_data = task_data.get("input_data", {})
             
-            logger.info(f"🔍 Начинаем анализ sales operations: {analysis_type}")
+            print(f"🎯 Sales Operations Manager обрабатывает задачу: {analysis_type}")
+
+            # Формируем промпт для LLM
+            user_prompt = self._create_sales_operations_prompt(analysis_type, input_data)
             
-            if analysis_type == "pipeline_analysis":
-                result = await self._analyze_pipeline_metrics(input_data)
-            elif analysis_type == "team_performance":
-                result = await self._analyze_team_performance(input_data)
-            elif analysis_type == "forecast_analysis":
-                result = await self._generate_sales_forecast(input_data)
-            elif analysis_type == "optimization_recommendations":
-                result = await self._generate_optimization_recommendations(input_data)
+            # Вызываем LLM для sales analysis
+            llm_result = await self.process_with_llm(user_prompt, task_data)
+            
+            if llm_result["success"]:
+                # Парсим JSON ответ от LLM
+                try:
+                    llm_content = llm_result["result"]
+                    if isinstance(llm_content, str):
+                        import re
+                        import json
+                        json_match = re.search(r'\{.*\}', llm_content, re.DOTALL)
+                        if json_match:
+                            sales_analysis = json.loads(json_match.group())
+                        else:
+                            sales_analysis = self._create_fallback_sales_analysis(input_data, analysis_type)
+                    else:
+                        sales_analysis = llm_content
+                        
+                    # Дополняем результат системными данными
+                    result = self._enhance_sales_result(sales_analysis, input_data, analysis_type)
+                    
+                except (json.JSONDecodeError, AttributeError) as e:
+                    print(f"⚠️ Ошибка парсинга JSON от LLM: {e}")
+                    result = self._create_fallback_sales_analysis(input_data, analysis_type)
+                    result["llm_parsing_error"] = str(e)
             else:
-                # Full comprehensive analysis
-                result = await self._comprehensive_sales_analysis(input_data)
-            
-            logger.info(f"✅ Sales operations анализ завершен")
-            
+                # Fallback к базовой логике
+                print(f"⚠️ LLM недоступен, используем fallback логику")
+                result = self._create_fallback_sales_analysis(input_data, analysis_type)
+                result["fallback_mode"] = True
+                result["llm_error"] = llm_result.get("error", "unknown")
+
             return {
                 "success": True,
                 "agent": self.agent_id,
                 "timestamp": datetime.now().isoformat(),
                 "analysis_type": analysis_type,
-                "sales_operations_result": result,
-                "pipeline_health_score": result.get("pipeline_health_score", 75),
-                "key_insights": self._extract_key_insights(result),
-                "priority_actions": result.get("action_items", [])[:3],  # Top 3 actions
-                "confidence_score": result.get("confidence_level", 0.85)
+                "result": result,
+                "pipeline_health_score": result.get("pipeline_analysis", {}).get("pipeline_health_score", 75),
+                "model_used": llm_result.get('model_used') if llm_result["success"] else None,
+                "tokens_used": llm_result.get('tokens_used') if llm_result["success"] else None
             }
             
         except Exception as e:
@@ -232,6 +326,195 @@ class SalesOperationsManagerAgent(BaseAgent):
                 "error": f"Sales operations analysis failed: {str(e)}",
                 "pipeline_health_score": 0
             }
+
+    def _create_sales_operations_prompt(self, analysis_type: str, input_data: Dict[str, Any]) -> str:
+        """Создание промпта для sales operations analysis"""
+        if analysis_type == "pipeline_analysis":
+            return f"""Проведи comprehensive pipeline analysis:
+
+ДАННЫЕ PIPELINE:
+{json.dumps(input_data, indent=2, ensure_ascii=False)}
+
+ЗАДАЧА:
+Проанализируй воронку продаж с focus на:
+1. Pipeline health score (0-100) с детальным breakdown
+2. Stage-by-stage conversion analysis  
+3. Bottleneck identification в воронке
+4. Revenue forecasting на основе текущих данных
+5. Optimization recommendations для улучшения performance
+
+Используй industry benchmarks для сравнения:
+- Lead→Qualified: {self.industry_benchmarks['lead_to_qualified_rate']*100:.0f}%
+- Qualified→Proposal: {self.industry_benchmarks['qualified_to_proposal_rate']*100:.0f}%
+- Proposal→Win: {self.industry_benchmarks['proposal_to_win_rate']*100:.0f}%
+
+Дай detailed analysis в JSON формате!"""
+
+        elif analysis_type == "team_performance":
+            return f"""Проанализируй performance sales команды:
+
+ДАННЫЕ КОМАНДЫ:
+{json.dumps(input_data, indent=2, ensure_ascii=False)}
+
+TEAM ROLES CONTEXT:
+{json.dumps(self.team_roles, indent=2, ensure_ascii=False)}
+
+Проанализируй:
+1. Individual performance vs quotas
+2. Team collaboration effectiveness
+3. Skill gaps identification
+4. Coaching recommendations
+5. Territory optimization opportunities"""
+
+        elif analysis_type == "forecast_analysis":
+            return f"""Создай revenue forecast:
+
+ИСТОРИЧЕСКИЕ ДАННЫЕ:
+{json.dumps(input_data, indent=2, ensure_ascii=False)}
+
+BENCHMARKS:
+- Average Deal Size: {self.industry_benchmarks['avg_deal_size_rub']:,.0f} ₽
+- Deal Cycle: {self.industry_benchmarks['avg_deal_cycle_days']} дней
+
+Построй forecast на:
+1. Текущий месяц
+2. Следующий квартал  
+3. Confidence intervals
+4. Risk factors analysis"""
+
+        else:
+            return f"""Проведи comprehensive sales operations analysis:
+
+ВХОДНЫЕ ДАННЫЕ:
+{json.dumps(input_data, indent=2, ensure_ascii=False)}
+
+Проанализируй все аспекты:
+1. Pipeline health и conversion rates
+2. Team performance и quota attainment  
+3. Revenue forecasting с confidence levels
+4. Process optimization opportunities
+5. Strategic recommendations
+
+Дай полный management-level analysis в JSON формате!"""
+
+    def _create_fallback_sales_analysis(self, input_data: Dict[str, Any], analysis_type: str) -> Dict[str, Any]:
+        """Fallback analysis когда LLM недоступен"""
+        current_leads = input_data.get("current_leads", 100)
+        qualified_leads = input_data.get("qualified_leads", 25)
+        proposals_sent = input_data.get("proposals_sent", 15)
+        deals_won = input_data.get("deals_won", 5)
+        
+        # Рассчитываем базовые метрики
+        lead_to_qualified = qualified_leads / current_leads if current_leads > 0 else 0
+        qualified_to_proposal = proposals_sent / qualified_leads if qualified_leads > 0 else 0
+        proposal_to_win = deals_won / proposals_sent if proposals_sent > 0 else 0
+        
+        # Pipeline health score
+        pipeline_health = (
+            (lead_to_qualified / self.industry_benchmarks['lead_to_qualified_rate']) * 30 +
+            (qualified_to_proposal / self.industry_benchmarks['qualified_to_proposal_rate']) * 40 +
+            (proposal_to_win / self.industry_benchmarks['proposal_to_win_rate']) * 30
+        )
+        pipeline_health = min(100, max(0, pipeline_health))
+        
+        return {
+            "pipeline_analysis": {
+                "pipeline_health_score": int(pipeline_health),
+                "stage_breakdown": {
+                    "new_leads": current_leads,
+                    "qualified": qualified_leads,
+                    "proposals": proposals_sent,
+                    "closed_won": deals_won
+                },
+                "conversion_rates": {
+                    "lead_to_qualified": round(lead_to_qualified, 3),
+                    "qualified_to_proposal": round(qualified_to_proposal, 3),
+                    "proposal_to_win": round(proposal_to_win, 3)
+                },
+                "bottlenecks": self._identify_bottlenecks(lead_to_qualified, qualified_to_proposal, proposal_to_win)
+            },
+            "performance_analysis": {
+                "team_performance": {"overall_score": 75},
+                "quota_attainment": {"current_quarter": 0.82},
+                "performance_gaps": ["Необходимо увеличить conversion rate"]
+            },
+            "revenue_forecasting": {
+                "current_month_forecast": deals_won * self.industry_benchmarks['avg_deal_size_rub'],
+                "quarter_forecast": deals_won * 3 * self.industry_benchmarks['avg_deal_size_rub'],
+                "forecast_confidence": 0.75
+            },
+            "optimization_recommendations": [
+                "Оптимизировать процесс квалификации лидов",
+                "Улучшить качество proposal presentations",
+                "Внедрить sales coaching программу"
+            ],
+            "action_items": [
+                "Провести анализ bottlenecks в воронке",
+                "Обучить команду closing techniques",
+                "Автоматизировать lead nurturing"
+            ],
+            "pipeline_velocity": 0.73,
+            "fallback_used": True
+        }
+
+    def _enhance_sales_result(self, sales_analysis: Dict[str, Any], input_data: Dict[str, Any], analysis_type: str) -> Dict[str, Any]:
+        """Дополнение результата системными данными"""
+        # Добавляем benchmark comparison
+        if "pipeline_analysis" in sales_analysis and "conversion_rates" in sales_analysis["pipeline_analysis"]:
+            conversion_rates = sales_analysis["pipeline_analysis"]["conversion_rates"]
+            sales_analysis["benchmark_comparison"] = {
+                "lead_to_qualified_vs_benchmark": (
+                    conversion_rates.get("lead_to_qualified", 0) / self.industry_benchmarks['lead_to_qualified_rate'] - 1
+                ),
+                "qualified_to_proposal_vs_benchmark": (
+                    conversion_rates.get("qualified_to_proposal", 0) / self.industry_benchmarks['qualified_to_proposal_rate'] - 1
+                ),
+                "proposal_to_win_vs_benchmark": (
+                    conversion_rates.get("proposal_to_win", 0) / self.industry_benchmarks['proposal_to_win_rate'] - 1
+                )
+            }
+        
+        # Добавляем performance threshold context
+        pipeline_health = sales_analysis.get("pipeline_analysis", {}).get("pipeline_health_score", 75)
+        sales_analysis["performance_context"] = {
+            "health_category": self._categorize_pipeline_health(pipeline_health),
+            "industry_benchmarks": self.industry_benchmarks,
+            "performance_thresholds": self.performance_thresholds
+        }
+        
+        return sales_analysis
+
+    def _identify_bottlenecks(self, lead_to_qualified: float, qualified_to_proposal: float, proposal_to_win: float) -> List[str]:
+        """Выявление bottlenecks в воронке"""
+        bottlenecks = []
+        
+        if lead_to_qualified < self.industry_benchmarks['lead_to_qualified_rate'] * 0.8:
+            bottlenecks.append("Низкая конверсия лидов в квалифицированные")
+        
+        if qualified_to_proposal < self.industry_benchmarks['qualified_to_proposal_rate'] * 0.8:
+            bottlenecks.append("Недостаточная конверсия в proposals")
+        
+        if proposal_to_win < self.industry_benchmarks['proposal_to_win_rate'] * 0.8:
+            bottlenecks.append("Низкий win rate по proposals")
+        
+        return bottlenecks
+
+    def _categorize_pipeline_health(self, health_score) -> str:
+        """Категоризация health score"""
+        # Безопасное преобразование в число
+        try:
+            health_score = float(health_score) if health_score else 0
+        except (ValueError, TypeError):
+            health_score = 0
+            
+        if health_score >= self.performance_thresholds["excellent_pipeline_health"]:
+            return "excellent"
+        elif health_score >= self.performance_thresholds["good_pipeline_health"]:
+            return "good"
+        elif health_score >= self.performance_thresholds["average_pipeline_health"]:
+            return "average"
+        else:
+            return "poor"
     
     async def _comprehensive_sales_analysis(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Комплексный анализ sales операций"""

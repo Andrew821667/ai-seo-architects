@@ -28,6 +28,7 @@ class ProposalGenerationAgent(BaseAgent):
         super().__init__(
             agent_id="proposal_generation_agent",
             name="Proposal Generation Agent",
+            agent_level="operational",
             data_provider=data_provider,
             knowledge_base="knowledge/operational/proposal_generation.md",
             model_name="gpt-4o-mini",
@@ -76,107 +77,95 @@ class ProposalGenerationAgent(BaseAgent):
             logger.error(f"Error loading knowledge base: {e}")
             return "# Proposal Generation Knowledge Base\n\nFallback knowledge base."
 
+    def get_system_prompt(self) -> str:
+        """Системный промпт для Proposal Generation Agent"""
+        return """Ты - Proposal Generation Agent, эксперт по созданию персонализированных коммерческих предложений для SEO-услуг.
+
+ТВОЯ ЭКСПЕРТИЗА:
+• Персонализированные предложения - 40%
+• Динамическое ценообразование - 30%
+• ROI калькуляции и прогнозы - 20%
+• Интеграция с lead данными - 10%
+
+ЗАДАЧА: Создай comprehensive коммерческое предложение на основе lead данных.
+
+ФОРМАТ ОТВЕТА (JSON):
+{
+  "proposal": {
+    "executive_summary": "string",
+    "service_packages": [],
+    "pricing": {},
+    "roi_projections": {},
+    "timeline": {}
+  },
+  "personalization": {},
+  "competitive_advantages": [],
+  "next_steps": []
+}"""
+
     async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Основная функция обработки задачи создания предложения
-
-        Args:
-            task_data: {
-                "input_data": {
-                    "lead_qualification_result": {...},  # От Lead Qualification Agent
-                    "client_requirements": {...},        # Дополнительные требования
-                    "proposal_type": "standard|custom",  # Тип предложения
-                    "urgency": "low|medium|high"         # Срочность
-                }
-            }
-
-        Returns:
-            Dict с данными предложения и метаданными
+        Основная функция обработки задачи создания предложения с LLM
         """
-        start_time = datetime.now()
-
         try:
-            # Извлекаем данные из задачи
             input_data = task_data.get("input_data", {})
-            lead_result = input_data.get("lead_qualification_result", {})
-            client_requirements = input_data.get("client_requirements", {})
-            proposal_type = input_data.get("proposal_type", "standard")
-            urgency = input_data.get("urgency", "medium")
+            
+            print(f"🎯 Proposal Generation Agent обрабатывает задачу")
 
-            logger.info(f"Processing proposal generation for lead: {lead_result.get('lead_id', 'unknown')}")
+            # Промпт для LLM
+            user_prompt = f"""Создай персонализированное коммерческое предложение:
+            
+LEAD ДАННЫЕ:
+{json.dumps(input_data, indent=2, ensure_ascii=False)}
 
-            # Валидация входных данных
-            if not lead_result:
-                raise ValueError("Processing proposal generation")
-
-            # Анализ lead данных
-            lead_analysis = self._analyze_lead_data(lead_result)
-
-            # Генерация ценового предложения
-            pricing_proposal = await self._generate_pricing(lead_analysis, client_requirements)
-
-            # Создание ROI проекций
-            roi_projections = self._calculate_roi_projections(lead_analysis, pricing_proposal)
-
-            # Генерация основного содержания предложения
-            proposal_content = await self._generate_proposal_content(
-                lead_analysis, pricing_proposal, roi_projections, proposal_type
-            )
-
-            # Создание рекомендаций по next steps
-            next_steps = self._generate_next_steps(lead_analysis, urgency)
-
-            # Формирование итогового результата
-            execution_time = (datetime.now() - start_time).total_seconds()
-
-            result = {
-                "agent": self.agent_id,
-                "timestamp": datetime.now().isoformat(),
-                "execution_time": execution_time,
-            "success": True,
-                "proposal_data": {
-                    "proposal_id": f"PROP-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
-                    "lead_id": lead_result.get("lead_id"),
-                    "client_info": lead_analysis.get("client_info", {}),
-                    "proposal_type": proposal_type,
-                    "pricing": pricing_proposal,
-                    "roi_projections": roi_projections,
-                    "content": proposal_content,
-                    "next_steps": next_steps,
-                    "validity_period": (datetime.now() + timedelta(days=30)).isoformat(),
-                    "confidence_score": self._calculate_confidence_score(lead_analysis)
-                },
-                "metadata": {
-                    "urgency": urgency,
-                    "processing_notes": [
-                        f"Lead score: {lead_result.get('final_score', 'N/A')}",
-                        f"Industry: {lead_analysis.get('industry', 'Unknown')}",
-                        f"Budget range: {pricing_proposal.get('total_range', 'N/A')}"
-                    ],
-                    "recommendations": [
-                        "Review pricing with sales team if score < 60",
-                        "Schedule demo call within 48 hours for hot leads",
-                        "Customize case studies for industry vertical"
-                    ]
-                }
-            }
-
-            logger.info(f"Proposal generated successfully in {execution_time:.2f}s")
-            return result
-
-        except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
-            logger.error(f"Error in proposal generation: {str(e)}")
+Создай comprehensive proposal с учетом специфики клиента."""
+            
+            # LLM вызов
+            llm_result = await self.process_with_llm(user_prompt, task_data)
+            
+            if llm_result["success"]:
+                try:
+                    import re
+                    llm_content = llm_result["result"]
+                    if isinstance(llm_content, str):
+                        json_match = re.search(r'\{.*\}', llm_content, re.DOTALL)
+                        if json_match:
+                            result = json.loads(json_match.group())
+                        else:
+                            result = self._create_fallback_proposal(input_data)
+                    else:
+                        result = llm_content
+                except (json.JSONDecodeError, AttributeError):
+                    result = self._create_fallback_proposal(input_data)
+            else:
+                result = self._create_fallback_proposal(input_data)
 
             return {
+                "success": True,
                 "agent": self.agent_id,
-                "timestamp": datetime.now().isoformat(),
-                "execution_time": execution_time,
-            "success": True,
-                "status": "error",
-                "error": str(e),
-                "proposal_data": None
+                "result": result,
+                "model_used": llm_result.get('model_used') if llm_result["success"] else None,
+                "timestamp": datetime.now().isoformat()
             }
+            
+        except Exception as e:
+            return {"success": False, "agent": self.agent_id, "error": str(e)}
+
+    def _create_fallback_proposal(self, input_data):
+        """Fallback proposal"""
+        return {
+            "proposal": {
+                "executive_summary": "Персонализированное SEO предложение для вашего бизнеса",
+                "service_packages": ["Technical SEO", "Content Strategy", "Link Building"],
+                "pricing": {"monthly": 150000, "setup": 50000},
+                "roi_projections": {"6_months": 2.5, "12_months": 4.2},
+                "timeline": {"implementation": "4-6 недель", "results": "3-6 месяцев"}
+            },
+            "personalization": {"industry_focus": True, "custom_kpis": True},
+            "competitive_advantages": ["AI-powered optimization", "Real-time reporting"],
+            "next_steps": ["Подписание договора", "Техническое ТЗ", "Начало работ"],
+            "fallback_used": True
+        }
 
     def _analyze_lead_data(self, lead_result: Dict[str, Any]) -> Dict[str, Any]:
         """Анализ данных лида для персонализации предложения (ИСПРАВЛЕННАЯ ВЕРСИЯ)"""

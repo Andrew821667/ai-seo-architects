@@ -26,10 +26,15 @@ class SalesConversationAgent(BaseAgent):
     - Интеграция с Lead Qualification и Proposal Generation
     """
     
-    def __init__(self, data_provider=None, **kwargs):
+    def __init__(self, data_provider=None, agent_level=None, **kwargs):
+        # Убираем agent_level из kwargs если он там есть
+        if 'agent_level' in kwargs:
+            del kwargs['agent_level']
+            
         super().__init__(
             agent_id="sales_conversation_agent",
             name="Sales Conversation Agent",
+            agent_level=agent_level or "operational",
             description="Автоматизация B2B продажных переговоров с российской спецификой",
             data_provider=data_provider,
             knowledge_base="knowledge/operational/sales_conversation.md",
@@ -108,32 +113,162 @@ class SalesConversationAgent(BaseAgent):
         print(f"   Методологии: {list(self.sales_frameworks.keys())}")
         print(f"   Отрасли: {list(self.industry_approaches.keys())}")
     
+    def get_system_prompt(self) -> str:
+        """Специализированный системный промпт для продажных переговоров"""
+        return f"""Ты - экспертный Sales Conversation Agent, специалист по B2B продажным переговорам в России.
+
+ТВОЯ ЭКСПЕРТИЗА:
+• СПИН-методология (Situation, Problem, Implication, Need-payoff) - 30%
+• Challenger Sale подход - 25%
+• Objection Handling - русские B2B возражения - 20%
+• Российская деловая культура и этикет - 15%
+• Value Proposition презентация - 10%
+
+ЗАДАЧА: Провести эффективный B2B sales разговор с русским клиентом, построить rapport, выявить потребности и продвинуть сделку.
+
+МЕТОДОЛОГИЯ ПРОДАЖ:
+1. СПИН Questioning (30 баллов):
+   - Situation: Текущая маркетинговая ситуация (0-8)
+   - Problem: Проблемы и боли клиента (0-8)  
+   - Implication: Последствия проблем (0-7)
+   - Need-payoff: Ценность решения (0-7)
+
+2. Objection Handling (25 баллов):
+   - Ценовые возражения: "Слишком дорого" (0-8)
+   - Доверие: "Не знаем вашу компанию" (0-6)
+   - Временные рамки: "Нужны быстрые результаты" (0-6)
+   - Необходимость: "У нас все хорошо" (0-5)
+
+3. Rapport Building (20 баллов):
+   - Российский деловой этикет (0-7)
+   - Профессиональное доверие (0-7)
+   - Отраслевая экспертиза (0-6)
+
+4. Value Presentation (15 баллов):
+   - ROI обоснование (0-8)
+   - Кейсы и референсы (0-7)
+
+5. Closing & Next Steps (10 баллов):
+   - Определение следующих шагов (0-5)
+   - Commitments получение (0-5)
+
+ОТРАСЛЕВЫЕ БОНУСЫ:
+• FinTech: +15 (compliance focus)
+• E-commerce: +10 (ROI focus)
+• B2B Services: +12 (relationship focus)
+• Manufacturing: +8 (traditional approach)
+
+РЕЗУЛЬТАТ: Верни ТОЛЬКО JSON с детальным анализом sales conversation и рекомендациями по следующим шагам."""
+    
     async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Основной метод обработки sales conversation задач"""
+        """
+        Основной метод обработки sales conversation задач с реальными LLM вызовами
+        
+        Args:
+            task_data: Данные задачи с информацией о лиде и типе разговора
+            
+        Returns:
+            Dict с результатами sales conversation от OpenAI
+        """
         try:
+            # Извлекаем входные данные
+            input_data = task_data.get("input_data", {})
             conversation_type = task_data.get('conversation_type', 'discovery_call')
-            input_data = task_data.get('input_data', {})
             
-            print(f"🎯 Processing {conversation_type} for {input_data.get('company_name', 'Unknown Company')}")
+            logger.info(f"🎯 Начинаем sales conversation: {input_data.get('company_name', 'Unknown')}, тип: {conversation_type}")
             
-            if conversation_type == 'discovery_call':
-                return await self._conduct_discovery_call(input_data)
-            elif conversation_type == 'objection_handling':
-                return await self._handle_objections(input_data)
-            elif conversation_type == 'closing_conversation':
-                return await self._conduct_closing(input_data)
-            elif conversation_type == 'follow_up':
-                return await self._conduct_follow_up(input_data)
+            # Формируем специализированный промпт для sales conversation
+            user_prompt = f"""Проведи профессиональный B2B sales разговор с российским клиентом:
+
+ДАННЫЕ КЛИЕНТА:
+Company: {input_data.get('company_name', 'Unknown')}
+Contact Person: {input_data.get('contact_person', 'Unknown')}
+Role: {input_data.get('role', 'Manager')}
+Industry: {input_data.get('industry', 'B2B Services')}
+Company Size: {input_data.get('company_size', 'Medium')}
+Budget Range: {input_data.get('budget_range', 'Unknown')} ₽
+Timeline: {input_data.get('timeline', 'Within Quarter')}
+Conversation Type: {conversation_type}
+Previous Qualification: {input_data.get('lead_score', 'Unknown')}/100
+Known Pain Points: {input_data.get('pain_points', 'Unknown')}
+Current Marketing: {input_data.get('current_marketing', 'Unknown')}
+
+Выполни эффективный sales разговор используя СПИН-методологию и российский деловой этикет. Верни результат строго в JSON формате:
+{{
+    "sales_conversation_score": <number 0-100>,
+    "conversation_quality": "<Excellent/Good/Fair/Poor>",
+    "rapport_building": {{
+        "rapport_level": "<formal_respectful/professional_friendly/casual>",
+        "cultural_adaptation": <0-10>,
+        "trust_established": "<yes/no>",
+        "communication_style": "<assessment>"
+    }},
+    "spin_analysis": {{
+        "situation_score": <0-8>,
+        "problem_score": <0-8>,
+        "implication_score": <0-7>,
+        "need_payoff_score": <0-7>,
+        "key_problems_identified": ["<list of problems>"],
+        "pain_points_discovered": ["<pain points>"]
+    }},
+    "objection_handling": {{
+        "objections_raised": ["<objections>"],
+        "objections_resolved": <number>,
+        "success_rate": <0.0-1.0>,
+        "techniques_used": ["<techniques>"],
+        "remaining_concerns": ["<concerns>"]
+    }},
+    "value_proposition": {{
+        "value_presented": "<main value prop>",
+        "roi_discussed": "<yes/no>",
+        "case_studies_shared": ["<relevant cases>"],
+        "differentiation_points": ["<differentiators>"],
+        "client_interest_level": "<high/medium/low>"
+    }},
+    "next_steps": {{
+        "recommended_action": "<detailed_proposal_required/technical_presentation/nurturing_sequence>",
+        "timeline": "<within_week/within_two_weeks/within_month>",
+        "stakeholders_involved": ["<stakeholders>"],
+        "deliverables_required": ["<deliverables>"],
+        "follow_up_sequence": ["<follow up steps>"]
+    }},
+    "deal_assessment": {{
+        "close_probability": <0.0-1.0>,
+        "estimated_deal_value": <number>,
+        "decision_timeline": "<timeline>",
+        "competitive_situation": "<assessment>",
+        "budget_qualified": "<yes/no/partial>"
+    }},
+    "conversation_insights": ["<key insights>"],
+    "russian_business_factors": ["<cultural considerations>"]
+}}"""
+
+            # Используем базовый метод с LLM интеграцией
+            result = await self.process_with_llm(user_prompt, input_data)
+            
+            if result["success"]:
+                logger.info(f"✅ Sales conversation завершен через OpenAI: {result.get('model_used', 'unknown')}")
+                # Добавляем метаданные агента
+                if isinstance(result.get("result"), str):
+                    # Если результат строка, оборачиваем в структуру
+                    result["sales_conversation_response"] = result["result"]
+                    result["agent_type"] = "sales_conversation"
+                    result["conversation_type"] = conversation_type
+                    result["methodology"] = ["SPIN", "Challenger Sale", "Russian B2B"]
+                
+                return result
             else:
-                # Default: полный sales conversation flow
-                return await self._full_sales_conversation(input_data)
+                # Fallback к базовой логике если OpenAI недоступен
+                logger.warning("⚠️ OpenAI недоступен, используем fallback sales conversation")
+                return await self._fallback_sales_conversation(input_data, conversation_type)
                 
         except Exception as e:
-            logger.error(f"Error in sales conversation: {str(e)}")
+            logger.error(f"❌ Ошибка в sales conversation: {str(e)}")
             return {
-                'success': False,
-                'error': f'Sales conversation error: {str(e)}',
-                'agent': self.agent_id
+                "success": False,
+                "agent": self.agent_id,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
             }
     
     async def _full_sales_conversation(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -207,6 +342,71 @@ class SalesConversationAgent(BaseAgent):
         print(f"   Next Action: {conversation_outcome['next_action']}")
         
         return conversation_outcome
+    
+    async def _fallback_sales_conversation(self, input_data: Dict[str, Any], conversation_type: str) -> Dict[str, Any]:
+        """Fallback логика sales conversation без LLM"""
+        try:
+            company_name = input_data.get('company_name', 'Unknown Company')
+            industry = input_data.get('industry', 'b2b_services')
+            
+            # Простой скоринг на основе данных
+            base_score = 65  # Средний скор
+            
+            # Корректировки на основе данных
+            if input_data.get('lead_score', 0) > 80:
+                base_score += 15
+            if input_data.get('budget_range'):
+                base_score += 10
+            if industry in ['fintech', 'ecommerce']:
+                base_score += 5
+            
+            # Определяем качество разговора
+            if base_score >= 85:
+                quality = "Excellent"
+                action = "detailed_proposal_required"
+                probability = 0.85
+            elif base_score >= 70:
+                quality = "Good"
+                action = "technical_presentation"
+                probability = 0.70
+            elif base_score >= 55:
+                quality = "Fair"
+                action = "nurturing_sequence"
+                probability = 0.45
+            else:
+                quality = "Poor"
+                action = "nurturing_sequence"
+                probability = 0.25
+            
+            return {
+                "success": True,
+                "agent": self.agent_id,
+                "result": {
+                    "sales_conversation_score": base_score,
+                    "conversation_quality": quality,
+                    "conversation_type": conversation_type,
+                    "company_name": company_name,
+                    "industry": industry,
+                    "recommended_action": action,
+                    "close_probability": probability,
+                    "note": "Результат получен без OpenAI (fallback режим)",
+                    "key_insights": [
+                        "Базовая квалификация проведена",
+                        "Определены следующие шаги",
+                        "Российская деловая культура учтена"
+                    ]
+                },
+                "fallback_mode": True,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "agent": self.agent_id,
+                "error": f"Fallback sales conversation failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
     
     def _extract_lead_data(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Извлечение и нормализация данных лида"""

@@ -31,11 +31,17 @@ class ReportingAgent(BaseAgent):
     аналитики производительности и отслеживания KPI.
     """
     
-    def __init__(self, data_provider=None, **kwargs):
+    def __init__(self, data_provider=None, agent_level=None, **kwargs):
+        # Убираем agent_level из kwargs если он там есть
+        if 'agent_level' in kwargs:
+            del kwargs['agent_level']
+            
         super().__init__(
             agent_id="reporting_agent",
             name="Reporting Agent",
+            agent_level=agent_level or "operational",
             data_provider=data_provider,
+            knowledge_base="knowledge/operational/reporting.md",
             **kwargs
         )
         
@@ -68,41 +74,288 @@ class ReportingAgent(BaseAgent):
         logger.info(f"   📈 KPI Categories: {len(self.kpi_categories)}")
         logger.info(f"   🎯 Confidence Threshold: {self.confidence_threshold}")
         logger.info(f"   📅 Default Period: {self.default_time_period} days")
+    
+    def get_system_prompt(self) -> str:
+        """Специализированный системный промпт для reporting"""
+        return f"""Ты - экспертный Reporting Agent, специалист по созданию профессиональных SEO отчётов и аналитики производительности.
+
+ТВОЯ ЭКСПЕРТИЗА:
+• SEO Performance Reporting - 30%
+• KPI Analysis & Tracking - 25%
+• ROI & Attribution Modeling - 20%
+• Dashboard Data Preparation - 15%
+• Insights & Recommendations Generation - 10%
+
+ЗАДАЧА: Создать детальный, инсайтный SEO отчёт с ключевыми метриками, трендами и рекомендациями.
+
+МЕТОДОЛОГИЯ ОТЧЁТОВ:
+1. Performance Analysis (30 баллов):
+   - Органический трафик dynamics (0-10)
+   - Позиции и visibility trends (0-8)
+   - Click-through rates анализ (0-6)
+   - Impressions и reach metrics (0-6)
+
+2. KPI Tracking (25 баллов):
+   - Conversion tracking и attribution (0-8)
+   - Goal completions analysis (0-7)
+   - Revenue и business impact (0-5)
+   - User engagement metrics (0-5)
+
+3. ROI & Attribution (20 баллов):
+   - Cost per acquisition calculations (0-7)
+   - Revenue attribution modeling (0-7)
+   - ROI по каналам и кампаниям (0-6)
+
+4. Technical Metrics (15 баллов):
+   - Site speed и Core Web Vitals (0-5)
+   - Crawling и indexing status (0-5)
+   - Mobile и accessibility scores (0-5)
+
+5. Insights & Forecasting (10 баллов):
+   - Тренд identification и analysis (0-4)
+   - Performance forecasting (0-3)
+   - Рекомендации prioritization (0-3)
+
+ОТЧЁТНЫЕ ПАРАМЕТРЫ:
+- Поддерживаемые типы: {', '.join(self.supported_report_types)}
+- KPI категории: {', '.join(self.kpi_categories)}
+- Период по умолчанию: {self.default_time_period} дней
+- Порог достоверности: {self.confidence_threshold}
+- Макс data points: {self.max_report_data_points}
+
+ОТРАСЛЕВЫЕ БОНУСЫ:
+• E-commerce: +15 (conversion & revenue focus)
+• B2B Services: +12 (lead quality & attribution)
+• FinTech: +10 (compliance & security metrics)
+• Healthcare: +8 (trust & authority metrics)
+• Local Business: +6 (local visibility metrics)
+
+РЕЗУЛЬТАТ: Верни ТОЛЬКО JSON с полным SEO performance отчётом, ключевыми метриками, трендами и actionable рекомендациями."""
 
     async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Обработка задач Reporting Agent
+        Основная логика создания SEO отчётов с реальными LLM вызовами
         
-        Поддерживаемые типы задач:
-        - generate_report: Генерация отчета определенного типа
-        - kpi_analysis: Анализ KPI и трендов
-        - dashboard_data: Подготовка данных для dashboard
-        - performance_insights: Генерация инсайтов производительности
-        - roi_calculation: Расчет ROI и атрибуции
+        Args:
+            task_data: Данные задачи с метриками и конфигурацией отчёта
+            
+        Returns:
+            Dict с полным SEO performance отчётом от OpenAI
         """
-        task_type = task_data.get('task_type', 'generate_report')
-        
         try:
-            if task_type == 'generate_report':
-                return await self._generate_report(task_data)
-            elif task_type == 'kpi_analysis':
-                return await self._analyze_kpis(task_data)
-            elif task_type == 'dashboard_data': 
-                return await self._prepare_dashboard_data(task_data)
-            elif task_type == 'performance_insights':
-                return await self._generate_performance_insights(task_data)
-            elif task_type == 'roi_calculation':
-                return await self._calculate_roi_attribution(task_data)
+            # Извлекаем входные данные
+            input_data = task_data.get("input_data", {})
+            task_type = task_data.get('task_type', 'comprehensive_performance_report')
+            
+            logger.info(f"📊 Начинаем генерацию отчёта: {input_data.get('domain', 'Unknown')}, тип: {task_type}")
+            
+            # Формируем специализированный промпт для reporting
+            user_prompt = f"""Создай профессиональный SEO performance отчёт с глубокой аналитикой:
+
+ДАННЫЕ ПРОЕКТА:
+Domain: {input_data.get('domain', 'Unknown')}
+Industry: {input_data.get('industry', 'Unknown')}
+Report Type: {task_type}
+Period: {input_data.get('period_days', self.default_time_period)} дней
+Client Type: {input_data.get('client_type', 'General')}
+
+ТЕКУЩИЕ МЕТРИКИ:
+Organic Traffic: {input_data.get('organic_traffic', 'N/A')}
+Organic Keywords: {input_data.get('organic_keywords', 'N/A')}
+Average Position: {input_data.get('avg_position', 'N/A')}
+Click-Through Rate: {input_data.get('ctr', 'N/A')}%
+Conversions: {input_data.get('conversions', 'N/A')}
+Revenue Attribution: {input_data.get('revenue', 'N/A')} ₽
+Site Speed (CWV): {input_data.get('site_speed', 'N/A')}
+Mobile Score: {input_data.get('mobile_score', 'N/A')}
+Backlinks: {input_data.get('backlinks', 'N/A')}
+Referring Domains: {input_data.get('referring_domains', 'N/A')}
+
+ПРЕДЫДУЩИЕ ПОКАЗАТЕЛИ (для сравнения):
+Previous Traffic: {input_data.get('previous_traffic', 'N/A')}
+Previous Keywords: {input_data.get('previous_keywords', 'N/A')}
+Previous Conversions: {input_data.get('previous_conversions', 'N/A')}
+Previous Revenue: {input_data.get('previous_revenue', 'N/A')} ₽
+
+ЦЕЛИ И KPI:
+Target Goals: {input_data.get('target_goals', 'Unknown')}
+KPI Focus: {input_data.get('kpi_focus', 'Traffic & Conversions')}
+Budget/Investment: {input_data.get('budget', 'N/A')} ₽
+
+Создай полный профессиональный SEO отчёт с детальной аналитикой. Верни результат строго в JSON формате:
+{{
+    "report_performance_score": <number 0-100>,
+    "report_summary": "<executive summary отчёта>",
+    "performance_analysis": {{
+        "organic_traffic": {{
+            "current_value": <number>,
+            "previous_value": <number>,
+            "change_percentage": <number>,
+            "trend": "<рост/спад/стабильность>",
+            "trend_analysis": "<анализ тренда>"
+        }},
+        "keyword_performance": {{
+            "total_keywords": <number>,
+            "top_10_keywords": <number>,
+            "avg_position_change": <number>,
+            "visibility_score": <number>,
+            "keyword_trends": "<оценка трендов>"
+        }},
+        "user_engagement": {{
+            "ctr_performance": <percentage>,
+            "bounce_rate_estimate": <percentage>,
+            "avg_session_duration": "<estimate>",
+            "engagement_quality": "<high/medium/low>"
+        }}
+    }},
+    "conversion_analysis": {{
+        "conversion_rate": <percentage>,
+        "conversion_change": <percentage>,
+        "goal_completions": <number>,
+        "revenue_attribution": <number>,
+        "cost_per_conversion": <number>,
+        "conversion_trends": "<анализ>"
+    }},
+    "roi_analysis": {{
+        "seo_roi_percentage": <number>,
+        "revenue_generated": <number>,
+        "investment_vs_return": "<соотношение>",
+        "payback_period": "<оценка>",
+        "ltv_impact": "<влияние на LTV>"
+    }},
+    "technical_performance": {{
+        "site_speed_score": <0-100>,
+        "mobile_optimization": <0-100>,
+        "core_web_vitals": "<pass/fail>",
+        "indexing_health": "<оценка>",
+        "technical_issues": ["<список проблем>"]
+    }},
+    "competitive_position": {{
+        "market_share_estimate": <percentage>,
+        "visibility_vs_competitors": "<сравнение>",
+        "competitive_advantages": ["<преимущества>"],
+        "competitive_threats": ["<угрозы>"]
+    }},
+    "key_insights": ["<топ-5 ключевых инсайтов>"],
+    "strategic_recommendations": {{
+        "high_priority": ["<высокоприоритетные действия>"],
+        "medium_priority": ["<среднеприоритетные действия>"],
+        "long_term_strategy": ["<долгосрочная стратегия>"]
+    }},
+    "forecasting": {{
+        "30_day_projection": "<прогноз на 30 дней>",
+        "90_day_projection": "<прогноз на 90 дней>",
+        "growth_trajectory": "<траектория роста>",
+        "confidence_level": <0.0-1.0>
+    }},
+    "next_actions": ["<конкретные следующие шаги>"]
+}}"""
+
+            # Используем базовый метод с LLM интеграцией
+            result = await self.process_with_llm(user_prompt, input_data)
+            
+            if result["success"]:
+                logger.info(f"✅ SEO отчёт создан через OpenAI: {result.get('model_used', 'unknown')}")
+                # Добавляем метаданные агента
+                if isinstance(result.get("result"), str):
+                    # Если результат строка, оборачиваем в структуру
+                    result["reporting_response"] = result["result"]
+                    result["agent_type"] = "reporting"
+                    result["report_type"] = task_type
+                    result["methodology"] = ["Performance Analysis", "KPI Tracking", "ROI Calculation"]
+                
+                return result
             else:
-                # Default: комплексный отчет производительности
-                return await self._comprehensive_performance_report(task_data)
+                # Fallback к базовой логике если OpenAI недоступен
+                logger.warning("⚠️ OpenAI недоступен, используем fallback reporting")
+                return await self._fallback_reporting(input_data, task_type)
                 
         except Exception as e:
-            logger.error(f"❌ Ошибка в Reporting Agent: {e}")
+            logger.error(f"❌ Ошибка в reporting: {str(e)}")
             return {
                 "success": False,
+                "agent": self.agent_id,
                 "error": str(e),
-                "agent": self.name
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    async def _fallback_reporting(self, input_data: Dict[str, Any], task_type: str) -> Dict[str, Any]:
+        """Fallback логика reporting без LLM"""
+        try:
+            domain = input_data.get('domain', 'unknown-domain.com')
+            period_days = input_data.get('period_days', self.default_time_period)
+            
+            # Базовый performance скор
+            base_score = 65  # Средний скор
+            
+            # Простые корректировки на основе данных
+            current_traffic = input_data.get('organic_traffic', 0)
+            previous_traffic = input_data.get('previous_traffic', 0)
+            
+            if current_traffic > previous_traffic and previous_traffic > 0:
+                traffic_growth = ((current_traffic - previous_traffic) / previous_traffic) * 100
+                base_score += min(15, traffic_growth * 0.3)
+            
+            conversions = input_data.get('conversions', 0)
+            if conversions > 0:
+                base_score += 10
+                
+            # Определяем общую производительность
+            if base_score >= 80:
+                performance = "Excellent"
+                trend = "сильный рост"
+            elif base_score >= 65:
+                performance = "Good"
+                trend = "умеренный рост"
+            elif base_score >= 50:
+                performance = "Average"
+                trend = "стабильность"
+            else:
+                performance = "Needs Improvement"
+                trend = "снижение"
+            
+            # Базовые рекомендации
+            recommendations = [
+                "Провести детальный анализ ключевых слов",
+                "Оптимизировать контент для повышения CTR",
+                "Улучшить технические показатели сайта"
+            ]
+            
+            if base_score < 60:
+                recommendations.insert(0, "Критическое улучшение SEO стратегии (приоритет)")
+            
+            return {
+                "success": True,
+                "agent": self.agent_id,
+                "result": {
+                    "report_performance_score": base_score,
+                    "performance_summary": performance,
+                    "domain": domain,
+                    "reporting_period": f"{period_days} дней",
+                    "traffic_trend": trend,
+                    "current_metrics": {
+                        "organic_traffic": current_traffic,
+                        "conversions": conversions,
+                        "avg_position": input_data.get('avg_position', 'N/A')
+                    },
+                    "key_recommendations": recommendations,
+                    "note": "Отчёт создан без OpenAI (fallback режим)",
+                    "report_config": {
+                        "supported_types": self.supported_report_types,
+                        "kpi_categories": self.kpi_categories,
+                        "confidence_threshold": self.confidence_threshold
+                    }
+                },
+                "fallback_mode": True,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "agent": self.agent_id,
+                "error": f"Fallback reporting failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
             }
 
     async def _generate_report(self, task_data: Dict[str, Any]) -> Dict[str, Any]:

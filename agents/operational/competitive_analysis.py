@@ -31,11 +31,17 @@ class CompetitiveAnalysisAgent(BaseAgent):
     SERP мониторинга и выявления стратегических возможностей.
     """
     
-    def __init__(self, data_provider=None, **kwargs):
+    def __init__(self, data_provider=None, agent_level=None, **kwargs):
+        # Убираем agent_level из kwargs если он там есть
+        if 'agent_level' in kwargs:
+            del kwargs['agent_level']
+            
         super().__init__(
             agent_id="competitive_analysis_agent",
-            name="Competitive Analysis Agent", 
+            name="Competitive Analysis Agent",
+            agent_level=agent_level or "operational",
             data_provider=data_provider,
+            knowledge_base="knowledge/operational/competitive_analysis.md",
             **kwargs
         )
         
@@ -69,41 +75,177 @@ class CompetitiveAnalysisAgent(BaseAgent):
         logger.info(f"   📊 Min Market Share: {self.min_market_share}%")
         logger.info(f"   🔍 Keyword Tracking Limit: {self.keyword_tracking_limit}")
         logger.info(f"   📈 SERP Monitoring Depth: {self.serp_monitoring_depth}")
+    
+    def get_system_prompt(self) -> str:
+        """Специализированный системный промпт для конкурентного анализа"""
+        return f"""Ты - экспертный Competitive Analysis Agent, специалист по глубокому конкурентному анализу и SERP research.
+
+ТВОЯ ЭКСПЕРТИЗА:
+• SERP Analysis & Feature Monitoring - 30%
+• Competitor Gap Analysis (слабые места) - 25%
+• Market Share & Voice Analysis - 20%
+• Content Gap Identification - 15%
+• Competitor Strategy Monitoring - 10%
+
+ЗАДАЧА: Провести комплексный конкурентный анализ, определить возможности для обгона и сформировать стратегию доминирования.
+
+МЕТОДОЛОГИЯ АНАЛИЗА:
+1. SERP Landscape Analysis (30 баллов):
+   - Featured Snippets ownership и opportunities (0-10)
+   - SERP Features presence (PAA, Images, Video) (0-8)
+   - Position distribution по keyword set (0-7)
+   - Competitive intensity assessment (0-5)
+
+2. Competitor Gap Analysis (25 баллов):
+   - Keyword gaps identification (0-8)
+   - Content quality и depth gaps (0-7)
+   - Technical performance gaps (0-5)
+   - Backlink profile weaknesses (0-5)
+
+3. Market Share Analysis (20 баллов):
+   - Visibility share calculation (0-8)
+   - Traffic share estimation (0-6)
+   - Market position и ranking (0-6)
+
+4. Content Gap Opportunities (15 баллов):
+   - Topic coverage analysis (0-5)
+   - Content format opportunities (0-5)
+   - Expertise demonstration gaps (0-5)
+
+5. Strategic Opportunities (10 баллов):
+   - Overtaking possibilities identification (0-4)
+   - Blue ocean opportunities (0-3)
+   - Emerging trend capture (0-3)
+
+КОНКУРЕНТНЫЕ ПАРАМЕТРЫ:
+- Максимум конкурентов: {self.max_competitors}
+- Минимальная доля рынка: {self.min_market_share}%
+- SERP мониторинг: ТОП-{self.serp_monitoring_depth} позиций
+- Keyword tracking: {self.keyword_tracking_limit} ключевых слов
+
+ОТРАСЛЕВЫЕ БОНУСЫ:
+• FinTech: +15 (regulatory compliance focus)
+• E-commerce: +12 (product competition analysis)
+• B2B Services: +10 (thought leadership opportunities)
+• Healthcare: +8 (expertise-based competition)
+• Real Estate: +6 (local market competition)
+
+РЕЗУЛЬТАТ: Верни ТОЛЬКО JSON с детальным конкурентным анализом, SERP возможностями и стратегией обгона."""
 
     async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Обработка задач Competitive Analysis Agent
+        Основная логика конкурентного анализа с реальными LLM вызовами
         
-        Поддерживаемые типы задач:
-        - serp_analysis: Анализ поисковой выдачи по ключевым запросам
-        - competitor_gap_analysis: Выявление слабых мест конкурентов
-        - market_share_analysis: Анализ доли голоса в нише
-        - content_gap_identification: Поиск контентных возможностей
-        - competitor_monitoring: Мониторинг изменений у конкурентов
+        Args:
+            task_data: Данные задачи с информацией о конкурентах и типе анализа
+            
+        Returns:
+            Dict с результатами конкурентного анализа от OpenAI
         """
-        task_type = task_data.get('task_type', 'serp_analysis')
-        
         try:
-            if task_type == 'serp_analysis':
-                return await self._analyze_serp_landscape(task_data)
-            elif task_type == 'competitor_gap_analysis':
-                return await self._analyze_competitor_gaps(task_data)
-            elif task_type == 'market_share_analysis':
-                return await self._analyze_market_share(task_data)
-            elif task_type == 'content_gap_identification':
-                return await self._identify_content_gaps(task_data)
-            elif task_type == 'competitor_monitoring':
-                return await self._monitor_competitor_changes(task_data)
+            # Извлекаем входные данные
+            input_data = task_data.get("input_data", {})
+            task_type = task_data.get('task_type', 'comprehensive_competitive_analysis')
+            
+            logger.info(f"🎯 Начинаем конкурентный анализ: {input_data.get('our_domain', 'Unknown')}, тип: {task_type}")
+            
+            # Формируем специализированный промпт для конкурентного анализа
+            user_prompt = f"""Проведи глубокий конкурентный анализ для:
+
+НАШ ДОМЕН И КОНКУРЕНТЫ:
+Our Domain: {input_data.get('our_domain', input_data.get('domain', 'Unknown'))}
+Industry: {input_data.get('industry', 'Unknown')}
+Competitors: {input_data.get('competitors', 'Unknown')}
+Target Keywords: {input_data.get('target_keywords', 'Unknown')}
+Current Market Position: {input_data.get('current_position', 'Unknown')}
+Analysis Type: {task_type}
+Current DA: {input_data.get('domain_authority', 'Unknown')}
+Current Organic Traffic: {input_data.get('organic_traffic', 'Unknown')}
+Current Rankings: {input_data.get('current_rankings', 'Unknown')}
+Market Focus: {input_data.get('market_focus', 'Россия')}
+
+Выполни комплексный конкурентный анализ по всем критическим областям. Верни результат строго в JSON формате:
+{{
+    "competitive_analysis_score": <number 0-100>,
+    "competitive_health": "<Excellent/Good/Needs Improvement/Poor/Critical>",
+    "serp_analysis": {{
+        "serp_feature_ownership": <percentage>,
+        "our_avg_position": <number>,
+        "featured_snippets_owned": <number>,
+        "featured_snippets_opportunities": <number>,
+        "serp_features_present": ["<features in SERP>"],
+        "high_priority_opportunities": ["<top opportunities>"],
+        "competitive_intensity": "<very_high/high/medium/low>"
+    }},
+    "competitor_gap_analysis": {{
+        "main_competitors": ["<competitor domains>"],
+        "competitor_strengths": {{
+            "<competitor1>": {{"strength": <0-100>, "key_advantages": ["<advantages>"]}}
+        }},
+        "gap_opportunities": {{
+            "keyword_gaps": <number>,
+            "content_gaps": <number>,
+            "technical_gaps": <number>,
+            "backlink_gaps": <number>
+        }},
+        "overtaking_opportunities": ["<realistic opportunities to surpass competitors>"]
+    }},
+    "market_share_analysis": {{
+        "our_visibility_share": <percentage>,
+        "our_traffic_share": <percentage>,
+        "market_position": <ranking position>,
+        "growth_potential": "<high/medium/low>",
+        "market_leaders": ["<leading domains>"],
+        "market_trends": "<market direction>"
+    }},
+    "content_gap_opportunities": {{
+        "high_value_topics": ["<topics with high opportunity>"],
+        "content_format_gaps": ["<missing content formats>"],
+        "expertise_gaps": ["<areas where we can dominate>"],
+        "estimated_traffic_potential": <number>
+    }},
+    "strategic_recommendations": {{
+        "immediate_priorities": ["<top 3 actions>"],
+        "short_term_goals": ["<3-6 month objectives>"],
+        "long_term_strategy": ["<6-12 month strategy>"],
+        "resource_allocation": {{
+            "content": "<percentage>",
+            "technical": "<percentage>",
+            "link_building": "<percentage>",
+            "paid_promotion": "<percentage>"
+        }}
+    }},
+    "competitive_threats": ["<main threats to watch>"],
+    "blue_ocean_opportunities": ["<unique opportunities with low competition>"],
+    "success_probability": <0.0-1.0>
+}}"""
+
+            # Используем базовый метод с LLM интеграцией
+            result = await self.process_with_llm(user_prompt, input_data)
+            
+            if result["success"]:
+                logger.info(f"✅ Конкурентный анализ завершен через OpenAI: {result.get('model_used', 'unknown')}")
+                # Добавляем метаданные агента
+                if isinstance(result.get("result"), str):
+                    # Если результат строка, оборачиваем в структуру
+                    result["competitive_analysis_response"] = result["result"]
+                    result["agent_type"] = "competitive_analysis"
+                    result["analysis_type"] = task_type
+                    result["methodology"] = ["SERP Analysis", "Gap Analysis", "Market Share Analysis"]
+                
+                return result
             else:
-                # Default: комплексный конкурентный анализ
-                return await self._comprehensive_competitive_analysis(task_data)
+                # Fallback к базовой логике если OpenAI недоступен
+                logger.warning("⚠️ OpenAI недоступен, используем fallback конкурентный анализ")
+                return await self._fallback_competitive_analysis(input_data, task_type)
                 
         except Exception as e:
-            logger.error(f"❌ Ошибка в Competitive Analysis Agent: {e}")
+            logger.error(f"❌ Ошибка в конкурентном анализе: {str(e)}")
             return {
                 "success": False,
+                "agent": self.agent_id,
                 "error": str(e),
-                "agent": self.name
+                "timestamp": datetime.now().isoformat()
             }
 
     async def _analyze_serp_landscape(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -531,6 +673,114 @@ class CompetitiveAnalysisAgent(BaseAgent):
         logger.info(f"   📈 Market Position: #{market_share['market_position']}")
         logger.info(f"   🚀 Strategic Priorities: {len(strategic_priorities)}")
         
+    async def _fallback_competitive_analysis(self, input_data: Dict[str, Any], task_type: str) -> Dict[str, Any]:
+        """Fallback логика конкурентного анализа без LLM"""
+        try:
+            our_domain = input_data.get('our_domain', input_data.get('domain', 'unknown-domain.com'))
+            industry = input_data.get('industry', 'general')
+            competitors = input_data.get('competitors', ['competitor1.com', 'competitor2.com'])
+            
+            # Базовый конкурентный скор
+            base_score = 55  # Средний скор
+            
+            # Простые корректировки на основе данных
+            current_da = input_data.get('domain_authority', 0)
+            if current_da > 60:
+                base_score += 20
+            elif current_da > 40:
+                base_score += 10
+            elif current_da > 20:
+                base_score += 5
+            
+            organic_traffic = input_data.get('organic_traffic', 0)
+            if organic_traffic > 100000:
+                base_score += 15
+            elif organic_traffic > 50000:
+                base_score += 10
+            elif organic_traffic > 10000:
+                base_score += 5
+            
+            # Отраслевые бонусы
+            industry_bonuses = {
+                'fintech': 8,
+                'ecommerce': 6,
+                'b2b_services': 5,
+                'healthcare': 4
+            }
+            base_score += industry_bonuses.get(industry.lower(), 0)
+            
+            # Определяем конкурентное здоровье
+            if base_score >= 80:
+                health = "Excellent"
+                market_position = random.randint(1, 3)
+                visibility = random.uniform(15, 30)
+            elif base_score >= 65:
+                health = "Good"
+                market_position = random.randint(2, 5)
+                visibility = random.uniform(10, 20)
+            elif base_score >= 50:
+                health = "Needs Improvement"
+                market_position = random.randint(4, 8)
+                visibility = random.uniform(5, 15)
+            elif base_score >= 35:
+                health = "Poor"
+                market_position = random.randint(6, 12)
+                visibility = random.uniform(2, 8)
+            else:
+                health = "Critical"
+                market_position = random.randint(10, 20)
+                visibility = random.uniform(1, 5)
+            
+            # Базовые рекомендации
+            recommendations = [
+                "Провести SERP анализ по ключевым запросам",
+                "Анализ слабых мест конкурентов",
+                "Мониторинг изменений у конкурентов"
+            ]
+            
+            if base_score < 50:
+                recommendations.insert(0, "Критическое улучшение конкурентной позиции (приоритет)")
+            
+            # Возможности
+            opportunities = [
+                f"Анализ {len(competitors)} конкурентов для поиска слабых мест",
+                "Захват featured snippets на низкоконкурентных запросах",
+                "Создание контента в недоосвещенных нишах"
+            ]
+            
+            return {
+                "success": True,
+                "agent": self.agent_id,
+                "result": {
+                    "competitive_analysis_score": base_score,
+                    "competitive_health": health,
+                    "our_domain": our_domain,
+                    "industry": industry,
+                    "market_position": market_position,
+                    "visibility_share": round(visibility, 1),
+                    "competitors_analyzed": len(competitors),
+                    "main_competitors": competitors[:3],
+                    "strategic_recommendations": recommendations,
+                    "opportunities": opportunities,
+                    "note": "Результат получен без OpenAI (fallback режим)",
+                    "analysis_scope": {
+                        "serp_monitoring": f"ТОП-{self.serp_monitoring_depth} позиций",
+                        "max_competitors": self.max_competitors,
+                        "keyword_tracking": self.keyword_tracking_limit
+                    }
+                },
+                "fallback_mode": True,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "agent": self.agent_id,
+                "error": f"Fallback competitive analysis failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+
         return {
             "success": True,
             "our_domain": our_domain,

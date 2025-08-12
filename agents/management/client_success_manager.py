@@ -35,6 +35,7 @@ class ClientSuccessManagerAgent(BaseAgent):
         super().__init__(
             agent_id="client_success_manager",
             name="Client Success Manager",
+            agent_level="management",
             data_provider=data_provider,
             **kwargs
         )
@@ -86,41 +87,120 @@ class ClientSuccessManagerAgent(BaseAgent):
         logger.info(f"   🚨 Critical Health Score: {self.health_score_critical}")
         logger.info(f"   📊 Target NPS: {self.nps_target}")
 
+    def get_system_prompt(self) -> str:
+        """Системный промпт для Client Success Manager"""
+        return f"""Ты - Client Success Manager уровня management, эксперт по клиентскому успеху и retention.
+
+ТВОЯ ЭКСПЕРТИЗА:
+• Churn Prediction & Prevention - 35%
+• Customer Success Strategy - 25% 
+• Upsell/Cross-sell Optimization - 20%
+• QBR & Reporting - 20%
+
+ПОРОГОВЫЕ ЗНАЧЕНИЯ:
+• Churn Risk Threshold: {self.churn_risk_threshold}%
+• Min Upsell Probability: {self.upsell_probability_min:.0%}
+• Critical Health Score: {self.health_score_critical}
+• Target NPS: {self.nps_target}
+
+ЗАДАЧА: Проведи comprehensive client success analysis.
+
+ФОРМАТ ОТВЕТА (JSON):
+{{
+  "client_analysis": {{
+    "health_score": "0-100",
+    "churn_risk": "0-100",
+    "satisfaction_metrics": {{}},
+    "engagement_level": "high/medium/low"
+  }},
+  "retention_strategy": [],
+  "upsell_opportunities": [],
+  "action_items": [],
+  "confidence_score": "0.0-1.0"
+}}"""
+
     async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Обработка задач Client Success Manager
-        
-        Поддерживаемые типы задач:
-        - client_health_assessment: Оценка здоровья клиента
-        - churn_risk_analysis: Анализ риска оттока
-        - upsell_analysis: Анализ возможностей расширения
-        - onboarding_progress: Отслеживание прогресса онбординга
-        - qbr_preparation: Подготовка квартального обзора
+        Обработка задач Client Success Manager с LLM интеграцией
         """
         task_type = task_data.get('task_type', 'client_health_assessment')
+        input_data = task_data.get('input_data', {})
         
+        print(f"🎯 Client Success Manager обрабатывает задачу: {task_type}")
+
         try:
-            if task_type == 'client_health_assessment':
-                return await self._assess_client_health(task_data)
-            elif task_type == 'churn_risk_analysis':
-                return await self._analyze_churn_risk(task_data)
-            elif task_type == 'upsell_analysis':
-                return await self._analyze_upsell_opportunities(task_data)
-            elif task_type == 'onboarding_progress':
-                return await self._track_onboarding_progress(task_data)
-            elif task_type == 'qbr_preparation':
-                return await self._prepare_qbr(task_data)
+            # Формируем промпт для LLM
+            user_prompt = f"""Проведи client success analysis:
+            
+ЗАДАЧА: {task_type}
+ДАННЫЕ КЛИЕНТА: 
+{input_data}
+
+Проанализируй клиентский успех и дай рекомендации по retention и upsell."""
+            
+            # Вызываем LLM
+            llm_result = await self.process_with_llm(user_prompt, task_data)
+            
+            if llm_result["success"]:
+                try:
+                    import re
+                    import json
+                    llm_content = llm_result["result"]
+                    if isinstance(llm_content, str):
+                        json_match = re.search(r'\{.*\}', llm_content, re.DOTALL)
+                        if json_match:
+                            result = json.loads(json_match.group())
+                        else:
+                            result = self._create_fallback_client_analysis(input_data, task_type)
+                    else:
+                        result = llm_content
+                except (json.JSONDecodeError, AttributeError):
+                    result = self._create_fallback_client_analysis(input_data, task_type)
             else:
-                # Default: комплексная оценка клиента
-                return await self._comprehensive_client_analysis(task_data)
-                
+                result = self._create_fallback_client_analysis(input_data, task_type)
+                result["fallback_mode"] = True
+
+            return {
+                "success": True,
+                "agent": self.agent_id,
+                "timestamp": datetime.now().isoformat(),
+                "task_type": task_type,
+                "result": result,
+                "model_used": llm_result.get('model_used') if llm_result["success"] else None
+            }
+            
         except Exception as e:
-            logger.error(f"❌ Ошибка в Client Success Manager: {e}")
             return {
                 "success": False,
+                "agent": self.agent_id,
                 "error": str(e),
-                "agent": self.name
+                "timestamp": datetime.now().isoformat()
             }
+
+    def _create_fallback_client_analysis(self, input_data: Dict[str, Any], task_type: str) -> Dict[str, Any]:
+        """Fallback client success analysis"""
+        return {
+            "client_analysis": {
+                "health_score": 78,
+                "churn_risk": 25,
+                "satisfaction_metrics": {"nps": 8.2, "csat": 4.1},
+                "engagement_level": "high"
+            },
+            "retention_strategy": [
+                "Усилить коммуникации с клиентом",
+                "Провести дополнительный QBR"
+            ],
+            "upsell_opportunities": [
+                "Дополнительные SEO услуги",
+                "Расширение geografic coverage"
+            ],
+            "action_items": [
+                "Назначить звонок с клиентом",
+                "Подготовить proposal для upsell"
+            ],
+            "confidence_score": 0.85,
+            "fallback_used": True
+        }
 
     async def _assess_client_health(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """Оценка общего здоровья клиента"""

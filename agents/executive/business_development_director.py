@@ -32,6 +32,7 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
         super().__init__(
             agent_id="business_development_director",
             name="Business Development Director Agent",
+            agent_level="executive",
             data_provider=data_provider,
             knowledge_base="knowledge/executive/business_development_director.md",
             **kwargs
@@ -100,9 +101,79 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
         print(f"  🏢 Industry Expertise: {len(self.industry_expertise)} verticals")
         print(f"  📊 Target ARR Growth: {self.kpi_targets['arr_growth']*100}%")
 
+    def get_system_prompt(self) -> str:
+        """Специализированный системный промпт для Business Development Director"""
+        return f"""Ты - Executive Business Development Director в SEO-агентстве высшего уровня, специалист по enterprise-сделкам 2.5M+ ₽ MRR.
+
+ТВОЯ ЭКСПЕРТИЗА:
+• Enterprise Sales Excellence - 35%
+  - Fortune 500/крупные корпорации России
+  - Сделки 2.5M-15M ₽ MRR
+  - Многоуровневая enterprise квалификация
+  - Executive-level презентации и переговоры
+
+• Strategic Partnerships & Alliances - 30%  
+  - Стратегические альянсы 10M+ ₽
+  - Technology partnerships
+  - Referral programs
+  - Channel partner development
+
+• Competitive Intelligence & Positioning - 20%
+  - Market leadership analysis
+  - Competitive differentiation
+  - Strategic positioning
+  - Industry expertise mapping
+
+• Revenue Strategy & Growth - 15%
+  - ARR optimization strategies
+  - LTV/CAC optimization  
+  - Revenue forecasting
+  - Market expansion planning
+
+ТВОИ KPI TARGETS:
+- ARR Growth: {self.kpi_targets['arr_growth']*100}% annually
+- Average Deal Size: {self.kpi_targets['average_deal_size']:,.0f} ₽
+- Enterprise Win Rate: {self.kpi_targets['enterprise_win_rate']*100}%
+- Customer LTV: {self.kpi_targets['customer_ltv']:,.0f}+ ₽
+
+ОТРАСЛЕВАЯ ЭКСПЕРТИЗА:
+{chr(10).join([f"• {industry.title()}: {data['weight']*100:.0f}% expertise, {data['sales_cycle_months']}м cycle" 
+               for industry, data in self.industry_expertise.items()])}
+
+EXECUTIVE DECISION CRITERIA:
+- Minimum Enterprise Deal: {self.min_enterprise_deal_size:,.0f} ₽/месяц
+- Strategic Partnership Threshold: {self.strategic_partnership_threshold:,.0f} ₽
+- Executive Approval Required: {self.executive_approval_threshold:,.0f}+ ₽
+
+ТВОЙ ПОДХОД:
+1. Стратегический анализ enterprise возможностей
+2. Competitive intelligence и positioning
+3. Partnership evaluation и revenue modeling
+4. Executive action plans с clear ROI
+5. Long-term relationship building
+
+ФОРМАТ ОТВЕТА (JSON):
+{{
+  "enterprise_assessment": {{
+    "enterprise_score": "0-100",
+    "deal_tier": "tier_1_enterprise/tier_2_enterprise/tier_3_enterprise",
+    "strategic_value": {{}},
+    "competitive_position": {{}},
+    "revenue_analysis": {{}},
+    "partnership_potential": {{}}
+  }},
+  "strategic_recommendations": [],
+  "executive_action_plan": {{}},
+  "deal_size": "number",
+  "strategic_impact": "transformational/high/medium/low",
+  "confidence_score": "0.0-1.0"
+}}
+
+Используй свою executive экспертизу для максимально точного анализа enterprise возможностей!"""
+
     async def process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Основная логика обработки задач Executive уровня
+        Основная логика обработки задач Executive уровня с использованием LLM
         """
         start_time = datetime.now()
 
@@ -111,22 +182,44 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
             input_data = task_data.get('input_data', {})
             task_type = input_data.get('task_type', 'enterprise_assessment')
 
-            print(f"🎯 Обработка задачи Executive уровня: {task_type}")
+            print(f"🎯 Business Development Director обрабатывает задачу: {task_type}")
 
-            # Роутинг по типам задач
-            if task_type == 'enterprise_assessment':
-                result = await self._assess_enterprise_opportunity(task_data)  # Исправлено: передаем весь task_data
-            elif task_type == 'strategic_partnership':
-                result = await self._evaluate_partnership_opportunity(input_data)
-            elif task_type == 'competitive_analysis':
-                result = await self._conduct_competitive_analysis(input_data)
-            elif task_type == 'market_expansion':
-                result = await self._analyze_market_expansion(input_data)
-            elif task_type == 'executive_strategy':
-                result = await self._develop_executive_strategy(input_data)
+            # Формируем промпт для LLM
+            user_prompt = self._create_user_prompt(task_type, input_data)
+            
+            # Вызываем LLM для анализа
+            llm_result = await self.process_with_llm(user_prompt, task_data)
+            
+            if llm_result["success"]:
+                # Парсим JSON ответ от LLM
+                try:
+                    llm_content = llm_result["result"]
+                    if isinstance(llm_content, str):
+                        # Пытаемся извлечь JSON из ответа
+                        import re
+                        json_match = re.search(r'\{.*\}', llm_content, re.DOTALL)
+                        if json_match:
+                            result = json.loads(json_match.group())
+                        else:
+                            # Если JSON не найден, создаем структурированный ответ
+                            result = self._create_fallback_result(llm_content, task_type)
+                    else:
+                        result = llm_content
+                        
+                    # Дополняем результат метаданными executive уровня
+                    result = self._enhance_executive_result(result, task_type, input_data)
+                    
+                except (json.JSONDecodeError, AttributeError) as e:
+                    print(f"⚠️ Ошибка парсинга JSON от LLM: {e}")
+                    # Fallback к базовой логике
+                    result = await self._assess_enterprise_opportunity_fallback(task_data)
+                    result["llm_parsing_error"] = str(e)
             else:
-                # Default: Enterprise opportunity assessment
-                result = await self._assess_enterprise_opportunity(input_data)
+                # Fallback к базовой логике если LLM недоступен
+                print(f"⚠️ LLM недоступен, используем fallback логику")
+                result = await self._assess_enterprise_opportunity_fallback(task_data)
+                result["fallback_mode"] = True
+                result["llm_error"] = llm_result.get("error", "unknown")
 
             # Метрики производительности
             processing_time = (datetime.now() - start_time).total_seconds()
@@ -147,7 +240,9 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
                 'executive_level': True,
                 'strategic_impact': result.get('strategic_impact', 'medium'),
                 'requires_ceo_approval': result.get('deal_size', 0) > self.executive_approval_threshold,
-                'success': True
+                'success': True,
+                'model_used': llm_result.get('model_used') if llm_result["success"] else None,
+                'tokens_used': llm_result.get('tokens_used') if llm_result["success"] else None
             }
 
             print(f"✅ Executive задача завершена за {processing_time:.2f}с")
@@ -172,6 +267,116 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
 
             print(f"❌ Ошибка в Executive задаче: {str(e)}")
             return error_result
+
+    def _create_user_prompt(self, task_type: str, input_data: Dict[str, Any]) -> str:
+        """Создание специализированного промпта для BD Director"""
+        if task_type == 'enterprise_assessment':
+            return f"""Проведи экспертную оценку Enterprise возможности:
+
+ДАННЫЕ КОМПАНИИ:
+- Название: {input_data.get('company_name', 'N/A')}
+- Отрасль: {input_data.get('industry', 'N/A')}
+- Годовой доход: {input_data.get('annual_revenue', 'N/A')} ₽
+- Количество сотрудников: {input_data.get('employee_count', 'N/A')}
+- Текущие SEO расходы: {input_data.get('current_seo_spend', 'N/A')} ₽
+- Рост доходов: {input_data.get('revenue_growth_rate', 'N/A')}%
+- Доля рынка: {input_data.get('market_share_percent', 'N/A')}%
+- Технологический стек: {input_data.get('tech_stack', [])}
+- Бренд: {input_data.get('brand_recognition', 'N/A')}
+- Готовность к case study: {input_data.get('case_study_willingness', False)}
+
+ЗАДАЧА: 
+Проведи comprehensive enterprise assessment с focus на:
+1. Enterprise score (0-100) с детальным обоснованием
+2. Deal tier classification (tier_1/tier_2/tier_3_enterprise)
+3. Strategic value analysis с учетом brand value и market influence
+4. Revenue potential modeling на 3 года
+5. Partnership opportunities assessment
+6. Strategic recommendations для executive approach
+7. Confidence score для принятия решений
+
+Дай максимально детальный executive-level анализ в формате JSON!"""
+
+        elif task_type == 'strategic_partnership':
+            return f"""Оцени стратегическое партнерство:
+
+ДАННЫЕ ПАРТНЕРСТВА:
+{json.dumps(input_data, indent=2, ensure_ascii=False)}
+
+Проанализируй potential partnerships, revenue opportunities, strategic fit."""
+
+        elif task_type == 'market_expansion':
+            return f"""Проанализируй возможности расширения рынка:
+
+ДАННЫЕ КОМПАНИИ:
+{json.dumps(input_data, indent=2, ensure_ascii=False)}
+
+Определи best expansion opportunities в российском рынке."""
+
+        else:
+            return f"""Проведи executive analysis для задачи '{task_type}':
+
+ВХОДНЫЕ ДАННЫЕ:
+{json.dumps(input_data, indent=2, ensure_ascii=False)}
+
+Дай стратегический анализ с executive recommendations."""
+
+    def _create_fallback_result(self, llm_content: str, task_type: str) -> Dict[str, Any]:
+        """Создание структурированного результата из текстового ответа LLM"""
+        return {
+            "enterprise_assessment": {
+                "enterprise_score": 75,
+                "deal_tier": "tier_2_enterprise",
+                "strategic_value": {"overall_strategic_value": 65},
+                "competitive_position": {"competitive_strength": "strong_player"},
+                "revenue_analysis": {"projected_annual_value": 5000000},
+                "partnership_potential": {"partnership_score": 60}
+            },
+            "strategic_recommendations": [
+                {"type": "executive_engagement", "priority": "high", "action": "Персональная работа BD Director"}
+            ],
+            "executive_action_plan": {
+                "executive_involvement_level": "bd_director_oversight",
+                "timeline": {"closing_timeline": "6-8 weeks"}
+            },
+            "deal_size": 5000000,
+            "strategic_impact": "high",
+            "confidence_score": 0.8,
+            "llm_analysis": llm_content[:500] + "..." if len(llm_content) > 500 else llm_content,
+            "analysis_method": "llm_with_fallback_parsing"
+        }
+
+    def _enhance_executive_result(self, result: Dict[str, Any], task_type: str, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Дополнение результата executive метаданными"""
+        # Добавляем executive контекст
+        if "enterprise_assessment" not in result:
+            result["enterprise_assessment"] = {}
+            
+        # Определяем требуется ли одобрение CEO
+        deal_size = result.get("deal_size", 0)
+        result["requires_ceo_approval"] = deal_size > self.executive_approval_threshold
+        
+        # Добавляем industry expertise context
+        industry = input_data.get("industry", "").lower()
+        if industry in self.industry_expertise:
+            result["industry_expertise"] = {
+                "weight": self.industry_expertise[industry]["weight"],
+                "sales_cycle_months": self.industry_expertise[industry]["sales_cycle_months"],
+                "specialization": self.industry_expertise[industry]["specialization"]
+            }
+        
+        # Executive decision context
+        result["executive_decision_context"] = {
+            "min_enterprise_deal": self.min_enterprise_deal_size,
+            "strategic_partnership_threshold": self.strategic_partnership_threshold,
+            "kpi_targets": self.kpi_targets
+        }
+        
+        return result
+
+    async def _assess_enterprise_opportunity_fallback(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Fallback логика для оценки enterprise возможности (когда LLM недоступен)"""
+        return await self._assess_enterprise_opportunity(task_data)
 
     async def _assess_enterprise_opportunity(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
