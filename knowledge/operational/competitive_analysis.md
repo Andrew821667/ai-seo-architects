@@ -1,446 +1,446 @@
-# 🎯 Competitive Analysis Agent - Knowledge Base
+# 🎯 Агент конкурентного анализа - База знаний
 
 ## 📋 Роль и ответственности
 
-**Competitive Analysis Agent** - операционный агент, специализирующийся на глубоком анализе конкурентов, SERP research, gap analysis и выявлении возможностей для обгона соперников в поисковой выдаче.
+**Агент конкурентного анализа** - опера-циональный агент, специализирующийся на глубоком анализе конкурентов, поисковой выдаче, анализе пробелов и предоставлении возможности для всех конкурентов в поисковый выход.
 
 ### 🎯 **Основные задачи:**
-- **SERP analysis** - анализ поисковой выдачи по ключевым запросам
-- **Competitor gap analysis** - выявление слабых мест конкурентов
-- **Share of voice tracking** - отслеживание доли голоса в нише
-- **Content gap identification** - поиск контентных возможностей
-- **Technical advantage mapping** - анализ технических преимуществ
+- **Поисковая выдача** - анализ поисковой выдачи по ключевым запросам
+- **Анализ недостатков конкурентов** - открытие лучшего места для конкурентов
+- **Доля голосового отслеживания** - отслеживание до тех пор, пока голос не исчезнет
+- **Выявление пробелов в содержании** - поиск новых возможностей
+- **Отображение технических преимуществ** - анализ технических достижений
 
 ## 🔧 Технические возможности
 
-### **SERP Analysis Framework:**
-```python
+### **Платформа для анализа поисковой выдачи:**
+``python
 serp_analysis_metrics = {
-    "ranking_factors": {
-        "content_quality": {"weight": 0.25, "measurement": "word_count, expertise, depth"},
-        "technical_seo": {"weight": 0.20, "measurement": "page_speed, mobile_friendly, schema"},
-        "backlink_profile": {"weight": 0.20, "measurement": "domain_authority, link_quality"},
-        "user_experience": {"weight": 0.15, "measurement": "bounce_rate, time_on_page, CTR"},
-        "content_freshness": {"weight": 0.10, "measurement": "last_updated, publication_date"},
-        "brand_authority": {"weight": 0.10, "measurement": "brand_searches, mentions, trust"}
+    "факторы ранжирования_факторов": {
+        "содержание_качества": _BOS_ "вес": 0,25, "измерение": "количество слов, экспертность, глубина"},
+        
+"technical_seo": {"вес": 0,20, "измерение": "page_speed, mobile_friendly, schema"},
+"профиль обратной ссылки": _BOS_"вес": 0,20, "измерение": "domain_authority, link_quality"}, "пользовательский опыт": _BOS_"вес": 0,15, "измерение": "bounce_rate, time_on_page, CTR"},
+        "content_freshness": {"вес": 0,10, "измерение": "последнее обновление_, дата публикации_"},
+        "brand_authority": {"вес": 0,10, "измерение": "brand_searches, упоминания, доверие"}
     },
-    "serp_features": {
-        "featured_snippets": {"opportunity_value": "high", "traffic_impact": "30-40%"},
-        "people_also_ask": {"opportunity_value": "medium", "traffic_impact": "10-15%"},
-        "image_packs": {"opportunity_value": "medium", "traffic_impact": "5-10%"},
-        "video_results": {"opportunity_value": "high", "traffic_impact": "20-30%"},
-        "local_pack": {"opportunity_value": "high", "traffic_impact": "25-35%"},
-        "knowledge_panels": {"opportunity_value": "low", "traffic_impact": "brand"}
+"serp_features": _BOS_
+        "featured_snippets": {"opportunity_value": "высокая", "traffic_impact": "30-40%"},
+        "people_also_ask": {"значение возможности_": "среднее", "влияние на трафик": "10-15%"},
+        "image_packs": {"opportunity_value": "среднее значение", "traffic_impact": "5-10%"},
+        "video_results": {"opportunity_value": "высокий", "traffic_impact": "20-30%"},
+        "local_pack": {"opportunity_value": "высокое значение", "traffic_impact": "25-35%"},
+        "knowledge_panels": {"opportunity_value": "низкий уровень", "traffic_impact": "бренд"}
     }
 }
 ```
 
-### **Competitor Scoring Matrix:**
-```yaml
-competitor_strength_assessment:
-  content_strategy:
-    blog_frequency: "posts_per_month"
-    content_depth: "avg_word_count"  
-    topic_coverage: "keyword_clusters_covered"
-    content_quality: "expert_score_1_10"
+### **Матрица оценки конкурентов:**
+``yaml_ассессия
+конкурента по силе:
+  содержание_стратегии:
+    блог_частота: "публикации_в_месяце"
+    содержание_глубина: "среднее количество слов"  
+    тематический охват: "ключевые слова_кластеры_сохранены"
+    содержание_качества: "expert_score_1_10"
     
-  technical_performance:
-    site_speed: "core_web_vitals_score"
-    mobile_optimization: "mobile_usability_score" 
-    crawlability: "indexation_rate_percentage"
-    schema_markup: "structured_data_coverage"
+  технические характеристики:
+    скорость работы сайта: "core_web_vitals_score"
+    мобильная оптимизация: "mobile_usability_score" 
+    возможность обхода: "индексация_кратия_процентности"
+    схема_марк: "структурированные_дата_обновления"
     
-  backlink_authority:
-    domain_authority: "moz_domain_authority"
-    referring_domains: "unique_linking_domains"
-    link_velocity: "new_links_monthly"
-    link_quality: "avg_referring_domain_authority"
+  обратная ссылка_авторитетность:
+    домен_авторитетность: "moz_domain_authority"
+    ссылающие_домены: "уникальные_связывающие_домены"
+    скорость ссылки: "новые_ссылки_месячно"
+    качество ссылки: "avg_referring_domain_authority"
     
-  social_presence:
-    social_signals: "shares_mentions_combined"
-    brand_awareness: "branded_search_volume"
-    engagement_rate: "social_media_engagement"
-    influencer_connections: "partnerships_count"
+  социальное присутствие:
+    social_signals: "общие упоминания_бренда"
+    brand_awareness: "расширенный поиск бренда"
+    engagement_rate: "вовлеченность в социальные сети"
+    influencer_connections: "количество партнерств"
 ```
 
-### **Gap Analysis Opportunities:**
-```python
-gap_analysis_framework = {
-    "keyword_gaps": {
-        "identification": "Keywords competitors rank for but we don't",
-        "scoring": "search_volume * difficulty_inverse * relevance",
-        "priority_matrix": {
-            "quick_wins": {"volume": "1k-10k", "difficulty": "<30", "timeline": "1-3 months"},
-            "strategic": {"volume": "10k+", "difficulty": "30-60", "timeline": "3-6 months"},
-            "long_term": {"volume": "50k+", "difficulty": "60+", "timeline": "6-12 months"}
+### **Возможности для анализа пробелов:**
+``python
+gap_analysis_framework = _BOS_
+    "ключевые слова_гапсы": {
+        "идентификация": "Ключевые слова, по которым конкуренты оценивают, а мы нет",
+"оценка": "объем поиска * сложность поиска * релевантность",
+"матрица приоритетности": {
+            "быстрые выигрыши": {"объем": "1-10 тысяч", "сложность": "<30", "сроки": "1-3 месяца"},
+            "стратегический": {"объем": "10 тысяч+", "сложность": "30-60", "сроки": "3-6 месяцев"},
+            "долгосрочный": {"объем": "50 тысяч+", "сложность": "60+", "сроки": "6-12 месяцев"}
         }
     },
-    "content_gaps": {
-        "topic_clusters": "Missing topic coverage areas",
-        "content_formats": "Video, infographic, tool opportunities",
-        "content_depth": "Shallow content that can be improved",
-        "user_intent": "Informational, commercial, navigational gaps"
+"content_gaps": _BOS_
+        "topic_clusters": "Недостающие области охвата темы",
+        "content_formats": "Видео, инфографика, возможности инструментов",
+"content_depth": "Мелкий контент, который можно улучшить",
+"user_intent": "Информационные, коммерческие, навигационные пробелы".
     },
-    "technical_gaps": {
-        "site_speed": "Page load performance advantages",
-        "mobile_optimization": "Mobile UX improvements",
-        "structured_data": "Schema markup opportunities",
-        "site_architecture": "URL structure and navigation"  
+"технические пробелы": _BOS_
+        "site_speed": "Повышение производительности загрузки страниц",
+"mobile_optimization": "Улучшения UX для мобильных устройств",
+"structured_data": "Возможности разметки схем",
+"site_architecture": "Структура URL и навигация".  
     },
-    "backlink_gaps": {
-        "link_opportunities": "Sites linking to competitors but not us",
-        "content_assets": "Linkable content we're missing",
-        "relationship_gaps": "Industry connections to build",
-        "pr_opportunities": "Media coverage gaps"
+"переходы по обратным ссылкам": _BOS_
+        "link_opportunities": "Сайты, ссылающиеся на конкурентов, но не на нас",
+        "content_assets": "Нам не хватает контента
+, на который можно ссылаться", "relationship_gaps": "Необходимо наладить связи с отраслью
+", "pr-возможности": "Пробелы в освещении в СМИ".
     }
 }
 ```
 
-## 📊 Competitive Intelligence Framework
+## 📊 Система конкурентной разведки
 
-### **Market Share Analysis:**
-```yaml
+### **Анализ доли рынка:**
+``yaml
 market_analysis_metrics:
   organic_visibility:
-    share_of_voice: "percentage_of_total_keyword_visibility"
-    ranking_distribution: "positions_1_3_vs_4_10_distribution"
-    featured_snippet_ownership: "percentage_of_featured_snippets"
-    serp_feature_dominance: "various_serp_features_captured"
+    доля голосовых сообщений: "процентный показатель от общего количества ключевых слов"
+    ранжирование_распределения: "позиции_1_3_все_4_10_распределении"
+    принадлежность_функции: "процент_функции_функции_функции_функции_функции_функции_функции_функции_функции_функции"
+    serp_feature_dominance: "зафиксированы различные_сервисные_феатуры"
     
-  traffic_estimation:
-    organic_traffic: "estimated_monthly_organic_visitors"
-    paid_traffic: "estimated_ppc_traffic"
-    social_traffic: "social_media_referrals"
+  оценка трафика:
+    organic_traffic: "предполагаемые ежемесячные посещения_organic_visitors"
+    оплаченный трафик: "предполагаемый ppc_traffic"
+    социальный трафик: "социальные медиа-ссылки"
     direct_traffic: "brand_search_driven_visits"
     
   content_performance:
-    top_pages_traffic: "highest_performing_content"
+    top_pages_traffic: "самый высокий_эффективный_контент"
     content_velocity: "new_content_publishing_rate"
-    engagement_metrics: "time_on_page_bounce_rate"
-    conversion_indicators: "lead_gen_conversion_signals"
+    показатели вовлеченности: "time_on_page_bounce_rate"
+    индикаторы конверсии: "лид_ген_конверсии_сигналы"
 ```
 
-### **Competitive Benchmarking:**
-```python
-benchmarking_categories = {
-    "seo_performance": {
-        "organic_keywords": {"our_site": 0, "competitor_avg": 0, "best_competitor": 0},
-        "organic_traffic": {"our_site": 0, "competitor_avg": 0, "best_competitor": 0},
-        "domain_authority": {"our_site": 0, "competitor_avg": 0, "best_competitor": 0},
-        "backlinks": {"our_site": 0, "competitor_avg": 0, "best_competitor": 0}
+### **Конкурентный бенчмаркинг:**
+``сравнительный
+анализ python_categories = {
+    "seo_performance": _BOS_
+        "organic_keywords": _BOS_"наш_сайт": 0, "competitor_avg": 0, "best_competitor": 0},
+"organic_traffic": _BOS_"наш_сайт": 0, "competitor_avg": 0, "best_competitor": 0},
+"domain_authority": _BOS_"наш_сайт": 0, "competitor_avg": 0, "best_competitor": 0},
+"обратные ссылки": _BOS_"наш_сайт": 0, "competitor_avg": 0, "best_competitor": 0}
     },
-    "content_metrics": {
-        "content_volume": {"our_site": 0, "competitor_avg": 0, "best_competitor": 0},
-        "avg_content_length": {"our_site": 0, "competitor_avg": 0, "best_competitor": 0},
-        "content_freshness": {"our_site": 0, "competitor_avg": 0, "best_competitor": 0},
-        "expert_content_ratio": {"our_site": 0, "competitor_avg": 0, "best_competitor": 0}
+"содержание_метрики": _BOS_
+        "content_volume": {"наш_сайт": 0, "competitor_avg": 0, "best_competitor": 0},
+"средняя длина контента": _BOS_"наш_сайт": 0, "competitor_avg": 0, "best_competitor": 0},
+        "content_freshness": {"наш_сайт": 0, "competitor_avg": 0, "best_competitor": 0},
+"эксперт_контент_ратио": {"наш_сайт": 0, "competitor_avg": 0, "best_competitor": 0}
     },
-    "technical_performance": {
-        "site_speed": {"our_site": 0, "competitor_avg": 0, "best_competitor": 0},
-        "mobile_score": {"our_site": 0, "competitor_avg": 0, "best_competitor": 0},
-        "core_web_vitals": {"our_site": 0, "competitor_avg": 0, "best_competitor": 0},
-        "crawl_efficiency": {"our_site": 0, "competitor_avg": 0, "best_competitor": 0}
+"техническое состояние": _BOS_
+        
+"site_speed": {"наш_сайт": 0, "competitor_avg": 0, "best_competitor": 0},
+"mobile_score": {"наш_сайт": 0, "competitor_avg": 0, "best_competitor": 0}, "core_web_vitals": _BOS_"наш_сайт": 0, "competitor_avg": 0, "best_competitor": 0},
+"crawl_efficiency": {"наш_сайт": 0, "competitor_avg": 0, "best_competitor": 0}
     }
 }
 ```
 
-## 🎯 SERP Domination Strategy
+## 🎯 Стратегия доминирования в поисковой выдаче
 
-### **SERP Feature Optimization:**
-```yaml
+### ** Оптимизация функций поисковой выдачи:**
+``yaml
 serp_feature_strategies:
   featured_snippets:
-    target_format: "paragraphs, lists, tables"
-    content_structure: "question-answer format"
-    optimization_tactics:
-      - "Direct question targeting in H2/H3"
-      - "Concise 40-50 word answers"
-      - "Structured data markup"
-      - "High-authority page targeting"
+    целевой формат: "абзацы, списки, таблицы"
+    содержание_структура: "формат вопрос-ответ"
+    оптимизация_тактики:
+      - "Таргетинг на прямые вопросы в H2/H3"
+      - "Краткие ответы из 40-50 слов"
+      - "Структурированная разметка данных"
+      - "Таргетинг на страницы с высоким уровнем авторитетности"
     
   people_also_ask:
-    expansion_strategy: "Answer related questions comprehensively"
-    content_approach: "FAQ sections and detailed Q&A"
-    monitoring: "Track PAA box changes and new questions"
+    расширение_стратегии: "Всесторонне отвечайте на связанные вопросы"
+    подход к содержанию: "Разделы часто задаваемых вопросов и подробные вопросы и ответы на вопросы"
+    мониторинг: "Отслеживайте изменения в PAA-поле и новые вопросы"
     
   image_optimization:
-    visual_content: "High-quality, original images"
-    alt_text: "Descriptive, keyword-rich alt tags"  
-    file_naming: "SEO-friendly image file names"
-    image_sitemaps: "Comprehensive image XML sitemaps"
+    визуальное содержание: "Высококачественные, оригинальные изображения"
+    alt_text: "Описательные, обогащенные ключевыми словами alt-теги"  
+    название файла: "имена файлов изображений, удобные для SEO"
+    image_sitemaps: "Расширенные XML-карты сайта с изображениями"
     
   video_content:
-    video_seo: "YouTube optimization for video results"
-    embedded_videos: "Strategic video embedding on pages"
-    video_schema: "VideoObject structured data"
-    transcriptions: "Full video transcripts for indexing"
+    video_seo: "Оптимизация YouTube для получения видео результатов"
+    embedded_videos: "Стратегическое размещение видео на страницах"
+    video_schema: "Структурированные данные видеообъекта"
+    расшифровки: "Полные расшифровки видео для индексации"
 ```
 
-### **Content Superiority Framework:**
-```python
+### **Фреймворк превосходства контента:**
+``python
 content_superiority_metrics = {
-    "comprehensiveness": {
-        "word_count": "Target 2x competitor average",
-        "topic_coverage": "Cover 100% of user questions",
-        "depth_of_analysis": "Expert-level insights and data",
-        "unique_information": "Exclusive data, research, quotes"
+    "всесторонность": {
+        "word_count": "Целевой показатель в 2 раза выше среднего по конкурентам",
+"topic_coverage": "Охватить 100% вопросов пользователей",
+"depth_of_analysis": "Аналитика и данные экспертного уровня",
+"unique_information": "Эксклюзивные данные, исследования, цитаты".
     },
-    "user_experience": {
-        "readability": "Flesch reading score optimization",
-        "visual_elements": "Images, charts, infographics",
-        "interactive_elements": "Calculators, tools, quizzes",
-        "mobile_optimization": "Perfect mobile reading experience"
+"пользовательский опыт": _BOS_
+        "удобочитаемость": "Оптимизация показателей чтения по методу Флеша",
+"визуальные элементы": "Изображения, диаграммы, инфографика",
+"интерактивные элементы": "Калькуляторы, инструменты, тесты",
+"мобильная оптимизация": "Идеальный опыт чтения с мобильных устройств".
     },
-    "authority_signals": {
-        "expert_authors": "Industry expert bylines",
-        "citations_sources": "Authoritative source citations",
-        "original_research": "Primary data and studies",
-        "expert_quotes": "Industry leader interviews"
+"authority_signals": _BOS_
+        "expert_authors": "Ссылки отраслевых экспертов",
+"citations_sources": "Ссылки на авторитетные источники",
+"original_research": "Первичные данные и исследования",
+"expert_quotes": "Интервью с лидерами отрасли".
     },
-    "freshness_factors": {
-        "publication_date": "Recent publication timestamps",
-        "content_updates": "Regular content refreshes",
-        "trending_topics": "Current industry trends coverage",
-        "seasonal_relevance": "Timely, seasonal content updates"
+"факторы свежести": _BOS_
+        "publication_date": "Временные метки последних публикаций",
+"content_updates": "Регулярные обновления контента",
+"trending_topics": "Освещение текущих отраслевых тенденций",
+"seasonal_relevance": "Своевременные сезонные обновления контента".
     }
 }
 ```
 
-## 🔍 Competitive Monitoring System
+## 🔍 Система мониторинга конкуренции
 
-### **Automated Tracking Metrics:**
-```yaml
-monitoring_automation:
-  daily_tracking:
-    - ranking_position_changes: "Track top 100 keyword positions"
-    - serp_feature_changes: "Monitor featured snippet ownership"
-    - new_content_detection: "Identify new competitor content"
-    - backlink_acquisition: "Track new competitor backlinks"
+### **Автоматизированные показатели отслеживания:**
+``yaml
+отслеживание_автоматизации:
+  ежедневное отслеживание:
+    - ranking_position_changes: "Отслеживание 100 лучших позиций ключевых слов"
+    - serp_feature_changes: "Отслеживание владельцев избранных фрагментов"
+    - new_content_detection: "Выявление нового контента конкурентов"
+    - поиск обратных ссылок: "Отслеживание новых обратных ссылок конкурентов"
     
-  weekly_analysis:
-    - content_gap_updates: "Refresh content opportunity analysis"
-    - technical_performance: "Site speed and technical metrics"
-    - social_media_activity: "Competitor social engagement"
-    - paid_advertising_intel: "PPC campaign monitoring"
+  еженедельный_анализ:
+    - content_gap_updates: "Анализ возможностей обновления контента"
+    - technical_performance: "Скорость работы сайта и технические показатели"
+    - social_media_activity: "Социальная вовлеченность конкурентов"
+    - paid_advertising_intel: "мониторинг рекламных кампаний"
     
-  monthly_reporting:
-    - market_share_analysis: "Share of voice calculations"
-    - competitive_landscape: "New competitors identification"
-    - strategy_effectiveness: "Our performance vs competitors"
-    - opportunity_prioritization: "Updated action recommendations"
+  ежемесячная отчетность:
+    - market_share_analysis: "Расчет доли голосов"
+    - competitive_landscape: "Выявление новых конкурентов"
+    - strategy_effectiveness: "Наши показатели по сравнению с конкурентами"
+    - opportunity_prioritization: "Обновленные рекомендации по действиям"
 ```
 
-### **Alert System Configuration:**
-```python
-competitive_alerts = {
-    "ranking_threats": {
-        "trigger": "Competitor gains 3+ positions on target keywords",
-        "severity": "high",
-        "action": "Immediate content optimization review"
+### **Конфигурация системы оповещения:**
+``python
+competitive_alerts ={
+    "ранжирование_угроз": _BOS_
+        "триггер": "Конкурент получает более 3 позиций по целевым ключевым словам",
+"значимость": "высокая",
+"действие": "Немедленный обзор оптимизации контента".
     },
-    "content_opportunities": {
-        "trigger": "Competitor content gets 10k+ social shares",
-        "severity": "medium", 
-        "action": "Create superior version of content"
+"содержание_возможностей": _BOS_
+        "триггер": "Контент конкурентов получает более 10 тысяч репостов в социальных сетях",
+"серьезность": "средний уровень",
+"действие": "Создайте улучшенную версию контента".
     },
-    "backlink_threats": {
-        "trigger": "Competitor acquires 5+ high DA links in week",
-        "severity": "high",
-        "action": "Accelerate link building efforts"
+    "обратные ссылки_угрозы": {
+        "триггер": "Конкурент получает более 5 ссылок с высоким рейтингом DA за неделю",
+"серьезность": "высокая",
+"действие": "Ускоряет усилия по созданию ссылок".
     },
-    "serp_feature_loss": {
-        "trigger": "Lose featured snippet to competitor",
-        "severity": "critical",
-        "action": "Emergency content optimization"
+"serp_feature_loss": _BOS_
+        "триггер": "Потеря избранного фрагмента из-за конкурента",
+"серьезность": "критично",
+"действие": "Экстренная оптимизация контента".
     },
-    "new_competitor": {
-        "trigger": "New domain appears in top 10 for target keywords",
-        "severity": "medium",
-        "action": "Full competitive analysis of new entrant"
+"новый_конкурент": _BOS_
+        "триггер": "Новый домен попадает в топ-10 по целевым ключевым словам",
+"серьезность": "средняя",
+"действие": "Полный конкурентный анализ нового участника".
     }
 }
 ```
 
-## 📈 Strategic Response Framework
+## 📈 Рамки стратегического реагирования
 
-### **Competitive Response Strategies:**
-```yaml
+### **Стратегии конкурентного реагирования:**
+``yaml
 response_strategies:
-  defensive_tactics:
+  тактика защиты:
     content_improvement:
-      - "Enhance existing content that competitors are targeting"
-      - "Add unique value propositions to vulnerable pages"
-      - "Increase content depth and expert analysis"
-      - "Improve user engagement metrics"
+      - "Улучшать существующий контент, на который нацелены конкуренты"
+      - "Добавлять уникальные ценностные предложения на уязвимые страницы"
+      - "Повышение глубины контента и экспертного анализа"
+      - "Улучшение показателей вовлеченности пользователей"
       
-    technical_fortification:
-      - "Improve site speed beyond competitor benchmarks"
-      - "Enhance mobile user experience"
-      - "Implement advanced schema markup"
-      - "Optimize core web vitals performance"
+    техническое усовершенствование:
+      - "Повышение скорости работы сайта по сравнению с конкурентами"
+      - "Улучшение взаимодействия с мобильными пользователями"
+      - "Внедрение расширенной схемы разметки"
+      - "Оптимизация производительности основных веб-ресурсов"
       
-    link_defense:
-      - "Strengthen backlink profile with high-authority links"
-      - "Diversify link sources and anchor text"
-      - "Build relationships with competitor link sources"
-      - "Create linkable assets that outperform competitors"
+    ссылка на защиту:
+      - "Усилить профиль обратных ссылок с помощью авторитетных ссылок"
+      - "Разнообразить источники ссылок и текст для привязки"
+      - "Наладить отношения с источниками ссылок конкурентов"
+      - "Создать ресурсы, на которые можно ссылаться, чтобы они превосходили конкурентов"
   
-  offensive_tactics:
-    content_superiority:
-      - "Create 10x better content than top-ranking competitors"
-      - "Develop unique content formats (tools, calculators)"
-      - "Publish expert interviews and original research"
-      - "Target competitor content gaps with superior alternatives"
+  наступательная тактика:
+    контент-превосходство:
+      - "Создавайте контент в 10 раз лучше, чем у ведущих конкурентов"
+      - "Разрабатывайте уникальные форматы контента (инструменты, калькуляторы)"
+      - "Публикуйте экспертные интервью и оригинальные исследования"
+      - "Устраняйте пробелы в контенте конкурентов с помощью превосходных альтернатив"
       
     serp_domination:
-      - "Target featured snippets competitors own"
-      - "Optimize for multiple SERP features simultaneously"
-      - "Create comprehensive topic cluster content"
-      - "Build topical authority in competitor weak areas"
+      - "Ориентируйтесь на избранные фрагменты, которые принадлежат конкурентам"
+      - "Оптимизируйте для нескольких функций поисковой выдачи одновременно"
+      - "Создавайте комплексный тематический контент"
+      - "Повышайте авторитет в слабых местах конкурентов"
       
-    market_expansion:  
-      - "Target keywords competitors ignore"
-      - "Enter related niches where competitors are weak"
-      - "Capture emerging trend keywords before competitors"
-      - "Develop international SEO where competitors lack presence"
+    расширение рынка:  
+      - "Целевые ключевые слова конкуренты игнорируют"
+      - "Входите в смежные ниши, где конкуренты слабы"
+      - "Улавливайте новые трендовые ключевые слова раньше конкурентов"
+      - "Развивайте международное SEO там, где конкуренты не представлены"
 ```
 
-## 💼 ROI & Business Impact Analysis
+## 💼 Анализ рентабельности инвестиций и влияния на бизнес
 
-### **Competitive Advantage Measurement:**
-```python
-competitive_roi_framework = {
-    "market_share_gains": {
-        "metric": "Organic visibility share increase",
-        "calculation": "Our visibility % - Competitor avg %",
-        "target": "+5% quarterly market share gain",
-        "business_impact": "Direct correlation to revenue growth"
+### **Измерение конкурентных преимуществ:**
+``python
+конкурентоспособный_рои_фрейм = {
+    "market_share_gains": _BOS_
+        "показатель": "Увеличение доли органической видимости",
+"расчет": "Наша видимость в % к среднему показателю конкурентов",
+"цель": "ежеквартальное увеличение доли рынка на 5%",
+"business_impact": "Прямая корреляция с ростом выручки".
     },
-    "traffic_acquisition": {
-        "metric": "Organic traffic gained from competitors", 
-        "calculation": "Traffic from keywords where we outranked competitors",
-        "target": "20% of new traffic from competitive gains",
-        "business_impact": "Lower customer acquisition cost"
+"дорожное движение": _BOS_
+        "метрика": "Органический трафик, полученный от конкурентов",
+"расчет": "Трафик по ключевым словам, по которым мы опередили конкурентов",
+"цель": "20% нового трафика за счет конкурентной выгоды",
+"business_impact": "Снижение затрат на привлечение клиентов".
     },
-    "serp_feature_dominance": {
-        "metric": "Featured snippets and SERP features owned",
-        "calculation": "Our features / Total available features",
-        "target": "30%+ SERP feature ownership in niche",
-        "business_impact": "Higher CTR and brand authority"
+"serp_feature_dominance": _BOS_
+        "метрика": "Владение избранными фрагментами и функциями поисковой выдачи",
+"расчет": "Наши функции / Общее количество доступных функций",
+"цель": "владение более чем 30% функций поисковой выдачи в нише",
+"business_impact": "Повышение CTR и авторитета бренда".
     },
-    "content_superiority": {
-        "metric": "Content performance vs competitors",
-        "calculation": "Our content engagement / Competitor avg",
-        "target": "2x better engagement than competitors",
-        "business_impact": "Higher conversion rates and user satisfaction"
+"content_superiority": _BOS_
+        "метрика": "Эффективность контента по сравнению с конкурентами",
+"расчет": "Вовлеченность нашего контента в сравнении с конкурентами в среднем",
+"цель": "вовлеченность в 2 раза выше, чем у конкурентов",
+"business_impact": "Более высокие показатели конверсии и удовлетворенности пользователей".
     }
 }
 ```
 
-### **Competitive Intelligence Value:**
-```yaml
+### **Ценность конкурентной разведки:**
+``yaml
 intelligence_value_metrics:
   strategic_insights:
-    - market_trend_prediction: "Early identification of industry shifts"
-    - opportunity_sizing: "Quantification of traffic/revenue potential"
-    - threat_assessment: "Risk evaluation from competitive moves"
-    - resource_allocation: "Data-driven budget distribution"
+    - market_trend_prediction: "Раннее выявление изменений в отрасли"
+    - opportunity_sizing: "Количественная оценка потенциального трафика/дохода"
+    - threat_assessment: "Оценка рисков, связанных с действиями конкурентов"
+    - resource_allocation: "Распределение бюджета на основе данных"
     
-  tactical_advantages:
-    - content_creation_guidance: "Data-backed content strategy"
-    - keyword_prioritization: "ROI-focused keyword targeting"
-    - link_building_direction: "Competitor-informed link strategy"
-    - technical_optimization: "Performance benchmarking insights"
+  тактические преимущества:
+    - content_creation_guidance: "Стратегия создания контента, основанная на данных"
+    - приоритизация ключевых слов: "таргетинг по ключевым словам, ориентированный на рентабельность инвестиций"
+    - link_building_direction: "Стратегия создания ссылок с учетом интересов конкурентов"
+    - техническая оптимизация: "Анализ результатов сравнительного анализа"
     
-  time_to_market:
-    - faster_decision_making: "Real-time competitive data"
-    - reduced_research_time: "Automated intelligence gathering"
-    - proactive_strategy: "Anticipate rather than react"
-    - resource_efficiency: "Focus efforts on highest-impact areas"
+  время выхода на рынок:
+    - ускорение принятия решений: "Данные о конкурентах в режиме реального времени"
+    - сокращение времени на поиск: "Автоматизированный сбор информации"
+    - проактивная стратегия: "Предвидеть, а не реагировать"
+    - ресурсная эффективность: "Сосредоточить усилия на областях с наибольшей отдачей"
 ```
 
-## 🔄 Automated Workflows
+## 🔄 Автоматизированные рабочие процессы
 
-### **Daily Intelligence Tasks:**
-```python
+### **Ежедневные аналитические задачи:**
+``python
 daily_automation = [
-    "keyword_ranking_tracking",      # Monitor position changes
-    "serp_feature_monitoring",       # Track SERP feature ownership
-    "competitor_content_discovery",  # Identify new competitor content
-    "backlink_acquisition_alerts",   # Monitor new competitor links
-    "social_media_monitoring",       # Track competitor social activity
-    "technical_performance_check"    # Monitor site performance changes
+"отслеживание ключевых слов_ранкинга", # Отслеживание изменений позиции
+    "serp_feature_monitoring", # Отслеживание владения поисковой выдачей
+    "competitor_content_discovery", # Выявление нового контента конкурентов
+    "backlink_acquisition_alerts", # Мониторинг новых ссылок конкурентов
+    "social_media_monitoring", # Отслеживание социальной активности конкурентов
+    "техническая проверка работоспособности" # Отслеживание изменений производительности сайта
 ]
 ```
 
-### **Weekly Analysis Tasks:**
-```python
+### **Еженедельные аналитические задания:**
+``python
 weekly_automation = [
-    "content_gap_analysis_update",   # Refresh content opportunities
-    "link_building_gap_assessment",  # Update link gap analysis
-    "serp_landscape_analysis",       # Comprehensive SERP review
-    "competitor_strategy_analysis",  # Identify strategy changes
-    "market_share_calculation",      # Update visibility metrics
-    "opportunity_prioritization"     # Rank action opportunities
+"content_gap_analysis_update", # Обновление возможностей для контента
+    "link_building_gap_assessment", # Обновление анализа пробелов в ссылках
+    "serp_landscape_analysis", # Всесторонний обзор поисковой выдачи
+    "стратегический анализ конкурентов", # Определение изменений в стратегии
+    "расчет доли рынка", # Обновление показателей видимости
+    "определение приоритетности возможностей", # Ранжирование возможностей для действий
 ]
 ```
 
-### **Monthly Strategic Tasks:**
-```python
+### **Ежемесячные стратегические задачи:**
+``python
 monthly_automation = [
-    "competitive_landscape_review",  # Full market analysis
-    "strategy_effectiveness_audit",  # Measure our competitive performance
-    "new_competitor_identification", # Discover emerging competitors
-    "market_trend_analysis",         # Industry trend assessment
-    "roi_competitive_analysis",      # Business impact measurement
-    "strategic_recommendation_update" # Update competitive strategy
+"competitive_landscape_review", # Полный анализ рынка
+    "strategy_effectiveness_audit", # Оценка наших конкурентных показателей
+    "идентификация новых конкурентов", # Выявление новых конкурентов
+    "анализ рыночных тенденций", # Оценка отраслевых тенденций
+    "roi_competitive_analysis", # Измерение влияния на бизнес
+    "strategic_recommendation_update" # Обновление конкурентной стратегии
 ]
 ```
 
-## 🎯 Industry-Specific Frameworks
+## 🎯 Отраслевые платформы
 
-### **B2B SaaS Competitive Analysis:**
-```yaml
+### **Конкурентный анализ SaaS в сфере B2B:**
+``yaml
 b2b_saas_focus_areas:
-  feature_comparison:
-    - product_feature_analysis: "Competitive feature matrices"
-    - pricing_strategy_tracking: "Competitor pricing changes"
-    - integration_ecosystem: "Third-party integration coverage"
-    - customer_testimonial_analysis: "Social proof strategies"
+  сравнение характеристик:
+    - анализ характеристик продукта: "Матрицы конкурентных характеристик"
+    - отслеживание ценовой стратегии: "Изменения цен конкурентов"
+    - integration_ecosystem: "Интеграция со сторонними разработчиками"
+    - customer_testimonial_analysis: "Стратегии социальной защиты"
     
   content_strategy:
-    - thought_leadership_content: "Industry expert content analysis"
-    - case_study_strategies: "Customer success story approaches"
-    - educational_content: "How-to and tutorial coverage"
-    - industry_report_frequency: "Original research publication rates"
+    - thought_leadership_content: "Контент-анализ отраслевых экспертов"
+    - case_study_strategies: "Подходы к истории успеха клиентов"
+    - education_content: "Практические рекомендации и обучающие материалы"
+    - отраслевой отчет_частота: "Количество публикаций оригинальных исследований"
     
-  technical_marketing:
-    - api_documentation_quality: "Developer experience optimization"
-    - technical_blog_content: "Developer-focused content strategy"
-    - integration_guides: "Technical onboarding content"
-    - security_content: "Compliance and security positioning"
+  технический маркетинг:
+    - качество api_documentation_quality: "Оптимизация опыта разработчиков"
+    - technical_blog_content: "Стратегия контента, ориентированная на разработчиков"
+    - integration_guides: "Технический контент для внедрения"
+    - security_content: "Соответствие требованиям и позиционирование в области безопасности"
 ```
 
-### **E-commerce Competitive Analysis:**
-```yaml
+### **Конкурентный анализ электронной коммерции:**
+`ямл
 ecommerce_focus_areas:
   product_strategy:
-    - product_catalog_coverage: "SKU overlap and gaps analysis"
-    - pricing_competitiveness: "Dynamic pricing monitoring"
-    - product_page_optimization: "Conversion optimization tactics"
-    - inventory_strategy: "Stock availability tracking"
+    - product_catalog_coverage: "Анализ соответствия ассортимента и пробелов"
+    - pricing_competitiveness: "Динамический мониторинг ценообразования"
+    - product_page_optimization: "Тактика оптимизации конверсий"
+    - inventory_strategy: "Отслеживание наличия на складе"
     
-  content_marketing:
-    - buyer_guide_content: "Purchase decision support content"
-    - product_comparison_content: "Competitive product comparisons"
-    - seasonal_content_strategy: "Holiday and seasonal campaigns"
-    - user_generated_content: "Review and testimonial strategies"
+  контент-маркетинг:
+    - buyer_guide_content: "Контент для поддержки принятия решений о покупке"
+    - product_comparison_content: "Сравнение конкурентных продуктов"
+    - seasonal_content_strategy: "Праздничные и сезонные кампании"
+    - user_generated_content: "Стратегии отзывов"
     
-  technical_ecommerce:
-    - site_search_functionality: "Internal search optimization"
-    - checkout_process_analysis: "Conversion funnel optimization"
-    - mobile_commerce_experience: "Mobile shopping optimization"
-    - page_speed_performance: "Site performance for conversions"
+  техническая сторона коммерции:
+    - функциональность site_search_functionality: "Оптимизация внутреннего поиска"
+    - анализ процесса проверки: "Оптимизация воронки конверсий"
+    - опыт мобильной коммерции: "Оптимизация мобильных покупок"
+    - page_speed_performance: "Производительность сайта по конверсиям"
 ```
 
 ---
