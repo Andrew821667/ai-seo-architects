@@ -575,9 +575,9 @@ class BaseAgent(ABC):
             }
     
     def _initialize_rag_knowledge(self):
-        """Инициализация RAG базы знаний"""
+        """Инициализация RAG базы знаний с ChromaDB"""
         try:
-            from knowledge.knowledge_manager import knowledge_manager
+            from knowledge.chroma_knowledge_manager import knowledge_manager
             from core.config import config
             
             if not config.ENABLE_RAG:
@@ -591,18 +591,18 @@ class BaseAgent(ABC):
             )
             
             if vector_store:
-                print(f"✅ RAG база знаний загружена для {self.agent_id}")
+                print(f"✅ ChromaDB RAG база знаний загружена для {self.agent_id}")
             else:
-                print(f"⚠️ RAG база знаний не найдена для {self.agent_id}")
+                print(f"⚠️ ChromaDB RAG база знаний не найдена для {self.agent_id}")
                 self.rag_enabled = False
                 
         except Exception as e:
-            print(f"❌ Ошибка инициализации RAG для {self.agent_id}: {e}")
+            print(f"❌ Ошибка инициализации ChromaDB RAG для {self.agent_id}: {e}")
             self.rag_enabled = False
     
     async def get_knowledge_context(self, query: str, k: int = None) -> str:
         """
-        Получает релевантный контекст знаний для запроса
+        Получает релевантный контекст знаний для запроса через ChromaDB
         
         Args:
             query: Поисковый запрос
@@ -615,7 +615,7 @@ class BaseAgent(ABC):
             return ""
             
         try:
-            from knowledge.knowledge_manager import knowledge_manager
+            from knowledge.chroma_knowledge_manager import knowledge_manager
             
             context = knowledge_manager.get_knowledge_context(
                 self.agent_id, 
@@ -627,7 +627,7 @@ class BaseAgent(ABC):
             return context
             
         except Exception as e:
-            print(f"⚠️ Ошибка получения контекста знаний для {self.agent_id}: {e}")
+            print(f"⚠️ Ошибка получения контекста знаний через ChromaDB для {self.agent_id}: {e}")
             return ""
     
     def format_prompt_with_rag(self, user_prompt: str, task_data: Dict[str, Any]) -> str:
