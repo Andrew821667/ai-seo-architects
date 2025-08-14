@@ -575,16 +575,39 @@ class BaseAgent(ABC):
             }
     
     def _initialize_rag_knowledge(self):
-        """Инициализация RAG базы знаний с ChromaDB"""
+        """Инициализация RAG базы знаний с ChromaDB (исправленная версия)"""
         try:
-            from knowledge.chroma_knowledge_manager import knowledge_manager
-            from core.config import config
+            # ИСПРАВЛЕНО: Прямой импорт ChromaDB модуля (избегаем FAISS legacy код)
+            import importlib.util
+            import os
+            
+            # Проверяем что ChromaDB Knowledge Manager существует
+            chroma_km_path = os.path.join(os.path.dirname(__file__), '..', 'knowledge', 'chroma_knowledge_manager.py')
+            chroma_km_path = os.path.abspath(chroma_km_path)
+            
+            if not os.path.exists(chroma_km_path):
+                print(f"⚠️ ChromaDB Knowledge Manager не найден по пути {chroma_km_path}")
+                self.rag_enabled = False
+                return
+            
+            # Прямой импорт ChromaDB модуля без legacy FAISS зависимостей
+            spec = importlib.util.spec_from_file_location("chroma_knowledge_manager", chroma_km_path)
+            chroma_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(chroma_module)
+            
+            # Получаем knowledge_manager из ChromaDB модуля
+            knowledge_manager = chroma_module.knowledge_manager
+            
+            # Проверяем конфигурацию RAG
+            from core.config import AIAgentsConfig
+            config = AIAgentsConfig()
             
             if not config.ENABLE_RAG:
+                print(f"⚠️ RAG отключен в конфигурации для {self.agent_id}")
                 self.rag_enabled = False
                 return
                 
-            # Загружаем базу знаний для данного агента
+            # Загружаем базу знаний для данного агента через ChromaDB
             vector_store = knowledge_manager.load_agent_knowledge(
                 self.agent_id, 
                 self.agent_level
@@ -592,17 +615,20 @@ class BaseAgent(ABC):
             
             if vector_store:
                 print(f"✅ ChromaDB RAG база знаний загружена для {self.agent_id}")
+                # Сохраняем ссылку на knowledge_manager для дальнейшего использования
+                self._knowledge_manager = knowledge_manager
             else:
                 print(f"⚠️ ChromaDB RAG база знаний не найдена для {self.agent_id}")
                 self.rag_enabled = False
                 
         except Exception as e:
-            print(f"❌ Ошибка инициализации ChromaDB RAG для {self.agent_id}: {e}")
+            print(f"❌ Ошибка инициализации ChromaDB RAG для {self.agent_id}: {str(e)[:60]}...")
+            # НЕ показываем полный traceback чтобы избежать путаницы с FAISS ошибками
             self.rag_enabled = False
     
     async def get_knowledge_context(self, query: str, k: int = None) -> str:
         """
-        Получает релевантный контекст знаний для запроса через ChromaDB
+        Получает релевантный контекст знаний для запроса через ChromaDB (исправленная версия)
         
         Args:
             query: Поисковый запрос
@@ -615,7 +641,23 @@ class BaseAgent(ABC):
             return ""
             
         try:
-            from knowledge.chroma_knowledge_manager import knowledge_manager
+            # Используем сохраненную ссылку на knowledge_manager или создаем новую
+            if hasattr(self, '_knowledge_manager'):
+                knowledge_manager = self._knowledge_manager
+            else:
+                # Fallback к прямому импорту ChromaDB модуля
+                import importlib.util
+                import os
+                
+                chroma_km_path = os.path.join(os.path.dirname(__file__), '..', 'knowledge', 'chroma_knowledge_manager.py')
+                chroma_km_path = os.path.abspath(chroma_km_path)
+                
+                spec = importlib.util.spec_from_file_location("chroma_knowledge_manager", chroma_km_path)
+                chroma_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(chroma_module)
+                
+                knowledge_manager = chroma_module.knowledge_manager
+                self._knowledge_manager = knowledge_manager
             
             context = knowledge_manager.get_knowledge_context(
                 self.agent_id, 
