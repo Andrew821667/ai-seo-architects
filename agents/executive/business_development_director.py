@@ -551,7 +551,7 @@ EXECUTIVE DECISION CRITERIA:
         score += brand_score
 
         # 3. Growth Potential (15% веса)
-        growth_rate = company_data.get('revenue_growth_rate', 0)
+        growth_rate = safe_numeric(company_data.get('revenue_growth_rate', 0))
         if growth_rate >= 0.5:
             score += 15
         elif growth_rate >= 0.3:
@@ -567,7 +567,7 @@ EXECUTIVE DECISION CRITERIA:
         score += min(tech_stack * 2 + partnerships * 1.5, 15)
 
         # 5. Market Position (15% веса)
-        market_share = company_data.get('market_share_percent', 0)
+        market_share = safe_numeric(company_data.get('market_share_percent', 0))
         score += min(market_share, 15)
 
         return min(int(score), 100)
@@ -597,7 +597,7 @@ EXECUTIVE DECISION CRITERIA:
     def _assess_strategic_value(self, company_data: Dict) -> Dict[str, Any]:
         """Оценка стратегической ценности"""
         brand_score = self._calculate_brand_value(company_data)
-        market_influence = company_data.get('market_share_percent', 0) * 2
+        market_influence = safe_numeric(company_data.get('market_share_percent', 0)) * 2
         reference_potential = 50 if company_data.get('case_study_willingness', False) else 20
 
         return {
@@ -618,11 +618,11 @@ EXECUTIVE DECISION CRITERIA:
         }.get(brand_recognition, 0)
 
         # Media presence
-        media_mentions = company_data.get('annual_media_mentions', 0)
+        media_mentions = safe_numeric(company_data.get('annual_media_mentions', 0))
         score += min(media_mentions / 100 * 20, 20)
 
         # Social influence  
-        social_followers = company_data.get('social_media_followers', 0)
+        social_followers = safe_numeric(company_data.get('social_media_followers', 0))
         score += min(social_followers / 100000 * 15, 15)
 
         # Awards
@@ -633,7 +633,7 @@ EXECUTIVE DECISION CRITERIA:
 
     def _analyze_competitive_position(self, company_data: Dict) -> Dict[str, Any]:
         """Анализ конкурентной позиции"""
-        market_share = company_data.get('market_share_percent', 0)
+        market_share = safe_numeric(company_data.get('market_share_percent', 0))
         
         if market_share >= 25:
             competitive_strength = 'market_leader'
@@ -649,7 +649,7 @@ EXECUTIVE DECISION CRITERIA:
             'market_share_percent': market_share,
             'competitor_count': len(company_data.get('main_competitors', [])),
             'technology_advantages': company_data.get('technology_advantages', []),
-            'patent_portfolio': company_data.get('patent_count', 0)
+            'patent_portfolio': safe_numeric(company_data.get('patent_count', 0))
         }
 
     def _analyze_revenue_potential(self, company_data: Dict, proposal_data: Dict) -> Dict[str, Any]:
@@ -657,7 +657,7 @@ EXECUTIVE DECISION CRITERIA:
         base_annual_value = proposal_data.get('total_annual_investment', 0)
         
         # Enterprise multipliers
-        employee_count = company_data.get('employee_count', 0)
+        employee_count = safe_numeric(company_data.get('employee_count', 0))
         if employee_count >= 10000:
             multiplier = 2.5
         elif employee_count >= 1000:
@@ -668,7 +668,7 @@ EXECUTIVE DECISION CRITERIA:
             multiplier = 1.2
 
         projected_year_1 = base_annual_value * multiplier
-        growth_rate = company_data.get('revenue_growth_rate', 0.2)
+        growth_rate = safe_numeric(company_data.get('revenue_growth_rate', 0.2))
         projected_year_2 = projected_year_1 * (1 + growth_rate)
         projected_year_3 = projected_year_2 * (1 + growth_rate * 0.8)
 
