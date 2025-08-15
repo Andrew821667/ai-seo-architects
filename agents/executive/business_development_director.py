@@ -353,7 +353,7 @@ EXECUTIVE DECISION CRITERIA:
             result["enterprise_assessment"] = {}
             
         # Определяем требуется ли одобрение CEO
-        deal_size = result.get("deal_size", 0)
+        deal_size = safe_numeric(result.get("deal_size", 0))
         result["requires_ceo_approval"] = deal_size > self.executive_approval_threshold
         
         # Добавляем industry expertise context
