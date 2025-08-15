@@ -427,7 +427,7 @@ Competition Level: {input_data.get('competition_level', 'Unknown')}
             'executive_action_plan': executive_action_plan,
             'investment_requirement': growth_projections.get('required_investment', 0),
             'strategic_impact': self._determine_seo_strategic_impact(strategic_assessment),
-            'requires_board_presentation': growth_projections.get('projected_annual_roi', 0) > 10.0,
+            'requires_board_presentation': safe_numeric(growth_projections.get('projected_annual_roi', 0)) > 10.0,
             'confidence_score': self._calculate_strategic_confidence(strategic_assessment, industry_analysis)
         }
 

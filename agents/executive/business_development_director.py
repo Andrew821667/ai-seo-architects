@@ -239,7 +239,7 @@ EXECUTIVE DECISION CRITERIA:
                 'result': result,
                 'executive_level': True,
                 'strategic_impact': result.get('strategic_impact', 'medium'),
-                'requires_ceo_approval': result.get('deal_size', 0) > self.executive_approval_threshold,
+                'requires_ceo_approval': safe_numeric(result.get('deal_size', 0)) > self.executive_approval_threshold,
                 'success': True,
                 'model_used': llm_result.get('model_used') if llm_result["success"] else None,
                 'tokens_used': llm_result.get('tokens_used') if llm_result["success"] else None
@@ -440,7 +440,7 @@ EXECUTIVE DECISION CRITERIA:
             'executive_action_plan': action_plan,
             'deal_size': revenue_analysis.get('projected_annual_value', 0),
             'strategic_impact': self._determine_strategic_impact(enterprise_score, strategic_value),
-            'executive_approval_required': revenue_analysis.get('projected_annual_value', 0) > self.executive_approval_threshold,
+            'executive_approval_required': safe_numeric(revenue_analysis.get('projected_annual_value', 0)) > self.executive_approval_threshold,
             'confidence_score': self._calculate_confidence_score(enterprise_score, strategic_value)
         }
 
