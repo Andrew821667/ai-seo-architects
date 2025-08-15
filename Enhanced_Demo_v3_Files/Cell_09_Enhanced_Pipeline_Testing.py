@@ -27,7 +27,7 @@ async def test_pipeline_scenarios_enhanced():
     pipelines = []
     
     # ПАЙПЛАЙН 1: Lead → Sales → Proposal
-    print('\\n🚀 ПАЙПЛАЙН 1: ПОЛНЫЙ ЦИКЛ ПРОДАЖ')
+    print('\n🚀 ПАЙПЛАЙН 1: ПОЛНЫЙ ЦИКЛ ПРОДАЖ')
     print('═' * 70)
     
     pipeline_1_steps = []
@@ -66,7 +66,7 @@ async def test_pipeline_scenarios_enhanced():
                 print(f'├─ РЕЗУЛЬТАТ: Лид квалифицирован как HOT ({lead_score}/100) - готов к переговорам')
                 print(f'└─ NEXT: Переходим к презентации решения')
                 
-                print(f'\\n📊 ТЕХНИЧЕСКИЕ ДЕТАЛИ:')
+                print(f'\n📊 ТЕХНИЧЕСКИЕ ДЕТАЛИ:')
                 print(f'├─ Agent: lead_qualification | Model: gpt-4o-mini')
                 print(f'├─ Processing time: {processing_time:.1f}s | BANT Score: {lead_score}/100')
                 print(f'├─ Токены: ~890 input + ~650 output | Стоимость: ~$0.0005')
@@ -92,7 +92,7 @@ async def test_pipeline_scenarios_enhanced():
         
         # Этап 2: Sales переговоры (если лид квалифицированный)
         if lead_score >= 70:
-            print('\\n💬 ЭТАП 2: ПРЕЗЕНТАЦИЯ РЕШЕНИЯ')
+            print('\n💬 ЭТАП 2: ПРЕЗЕНТАЦИЯ РЕШЕНИЯ')
             
             conversation_data = {
                 'conversation_context': {
@@ -122,7 +122,7 @@ async def test_pipeline_scenarios_enhanced():
                     print(f'├─ РЕЗУЛЬТАТ: Клиент заинтересован ({conversation_quality}/100) - запрашивает КП')
                     print(f'└─ NEXT: Подготовка персонализированного proposal')
                     
-                    print(f'\\n📊 ТЕХНИЧЕСКИЕ ДЕТАЛИ:')
+                    print(f'\n📊 ТЕХНИЧЕСКИЕ ДЕТАЛИ:')
                     print(f'├─ Agent: sales_conversation | Model: gpt-4o-mini')
                     print(f'├─ Processing time: {processing_time:.1f}s | Conversation Quality: {conversation_quality}/100')
                     print(f'├─ Токены: ~1120 input + ~890 output | Стоимость: ~$0.0007')
@@ -148,7 +148,7 @@ async def test_pipeline_scenarios_enhanced():
             
             # Этап 3: Генерация предложения (если переговоры успешны)
             if conversation_quality >= 60:
-                print('\\n💰 ЭТАП 3: КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ')
+                print('\n💰 ЭТАП 3: КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ')
                 
                 proposal_data = {
                     'client_requirements': {
@@ -180,7 +180,7 @@ async def test_pipeline_scenarios_enhanced():
                         print(f'├─ РЕЗУЛЬТАТ: Сформировано предложение на {proposal_value/1000000:.0f}M ₽/год с ROI {roi_projection}%')
                         print(f'└─ ИТОГ: Готовое предложение отправлено клиенту')
                         
-                        print(f'\\n📊 ТЕХНИЧЕСКИЕ ДЕТАЛИ:')
+                        print(f'\n📊 ТЕХНИЧЕСКИЕ ДЕТАЛИ:')
                         print(f'├─ Agent: proposal_generation | Model: gpt-4o-mini')
                         print(f'├─ Processing time: {processing_time:.1f}s | Pricing accuracy: 94/100')
                         print(f'├─ Токены: ~1450 input + ~1200 output | Стоимость: ~$0.0009')

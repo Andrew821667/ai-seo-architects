@@ -17,7 +17,12 @@ async def run_complete_ai_seo_architects_demo_enhanced():
     
     import time
     import json
+    import os
     from datetime import datetime
+    
+    # Дополнительное отключение телеметрии
+    os.environ['CHROMA_TELEMETRY'] = 'false'
+    os.environ['ANONYMIZED_TELEMETRY'] = 'False'
     
     print('🚀 AI SEO ARCHITECTS - ENHANCED DEMO v3.0')
     print('=' * 80)
@@ -36,7 +41,7 @@ async def run_complete_ai_seo_architects_demo_enhanced():
         print('💡 Запустите ячейки 1-5 для инициализации системы')
         return {'success': False, 'error': 'System not initialized'}
     
-    print('✅ Система готова, начинаем enhanced тестирование...\\n')
+    print('✅ Система готова, начинаем enhanced тестирование...\n')
     
     demo_results = {
         'executive': None,
@@ -64,7 +69,7 @@ async def run_complete_ai_seo_architects_demo_enhanced():
                 test_data = {
                     'input_data': {
                         'client_type': 'Enterprise',
-                        'budget': 15000000,
+                        'budget': '15000000',  # Строка вместо числа для совместимости
                         'industry': 'fintech'
                     }
                 }
@@ -144,7 +149,7 @@ async def run_complete_ai_seo_architects_demo_enhanced():
         demo_results['executive'] = {'success': False, 'error': str(e)}
     
     # ЭТАП 2: Симуляция Management агентов
-    print('\\n⚙️ ЭТАП 2/4: MANAGEMENT АГЕНТЫ (GPT-4o-mini)')
+    print('\n⚙️ ЭТАП 2/4: MANAGEMENT АГЕНТЫ (GPT-4o-mini)')
     print('-' * 60)
     
     try:
@@ -199,7 +204,7 @@ async def run_complete_ai_seo_architects_demo_enhanced():
         demo_results['management'] = {'success': False, 'error': str(e)}
     
     # ЭТАП 3: Симуляция Operational агентов
-    print('\\n🔧 ЭТАП 3/4: OPERATIONAL АГЕНТЫ (GPT-4o-mini)')
+    print('\n🔧 ЭТАП 3/4: OPERATIONAL АГЕНТЫ (GPT-4o-mini)')
     print('-' * 60)
     
     try:
@@ -252,7 +257,7 @@ async def run_complete_ai_seo_architects_demo_enhanced():
         demo_results['operational'] = {'success': False, 'error': str(e)}
     
     # ЭТАП 4: Тестирование пайплайна с бизнес-историей
-    print('\\n🔄 ЭТАП 4/4: ENHANCED ПАЙПЛАЙН ТЕСТИРОВАНИЕ')
+    print('\n🔄 ЭТАП 4/4: ENHANCED ПАЙПЛАЙН ТЕСТИРОВАНИЕ')
     print('-' * 60)
     
     try:
@@ -269,7 +274,7 @@ async def run_complete_ai_seo_architects_demo_enhanced():
     # ФИНАЛЬНЫЙ ОТЧЕТ
     demo_total_time = time.time() - demo_start_time
     
-    print('\\n' + '=' * 80)
+    print('\n' + '=' * 80)
     print('🎯 ФИНАЛЬНЫЙ ENHANCED ОТЧЕТ')
     print('=' * 80)
     
@@ -283,14 +288,15 @@ async def run_complete_ai_seo_architects_demo_enhanced():
     
     for level_name, level_results in [('Executive', demo_results['executive']), 
                                      ('Management', demo_results['management']),
-                                     ('Operational', demo_results['operational'])]:\n        if level_results and level_results.get('success'):
+                                     ('Operational', demo_results['operational'])]:
+        if level_results and level_results.get('success'):
             stats = level_results['stats']
             total_agents_tested += stats['total_tests']
             successful_agents += stats['successful_tests']
     
     overall_success_rate = (successful_agents / max(1, total_agents_tested)) * 100
     
-    print(f'\\n🎯 ОБЩИЕ РЕЗУЛЬТАТЫ:')
+    print(f'\n🎯 ОБЩИЕ РЕЗУЛЬТАТЫ:')
     print(f'├─ Агентов протестировано: {total_agents_tested}/14')
     print(f'├─ Успешных агентов: {successful_agents} ({overall_success_rate:.1f}%)')
     print(f'├─ Общее время: {demo_total_time:.1f} секунд')
@@ -303,7 +309,7 @@ async def run_complete_ai_seo_architects_demo_enhanced():
     
     # Сохраняем детальные результаты в файлы
     if token_tracker:
-        print(f'\\n💾 СОХРАНЕНИЕ РЕЗУЛЬТАТОВ:')
+        print(f'\n💾 СОХРАНЕНИЕ РЕЗУЛЬТАТОВ:')
         save_detailed_results(demo_results, token_tracker)
     
     # Статус системы
@@ -317,10 +323,10 @@ async def run_complete_ai_seo_architects_demo_enhanced():
         system_status = '🟠 ТРЕБУЕТ ВНИМАНИЯ'
         status_msg = 'Система нуждается в улучшениях'
     
-    print(f'\\n🎯 СТАТУС СИСТЕМЫ: {system_status}')
+    print(f'\n🎯 СТАТУС СИСТЕМЫ: {system_status}')
     print(f'💬 {status_msg}')
     
-    print('\\n' + '=' * 80)
+    print('\n' + '=' * 80)
     print('🎉 ENHANCED ДЕМО ЗАВЕРШЕНО!')
     print('💎 Качество Executive решений (GPT-4): Premium уровень')
     print('⚡ Эффективность Operations (GPT-4o-mini): Оптимальная')
