@@ -124,6 +124,13 @@ class ChiefSEOStrategistAgent(BaseAgent):
         print(f"🚀 Target Organic Traffic: {self.strategic_seo_thresholds['monthly_traffic_threshold']:,.0f}/месяц")
         print(f"📈 Target ROI Multiplier: {self.strategic_kpis['roi_multiplier_target']}x")
         print(f"🔍 Algorithm Expertise: Google + Yandex")
+
+    def safe_numeric(self, value, default=0):
+        """Безопасное преобразование значения в число"""
+        try:
+            return float(value) if value else default
+        except (ValueError, TypeError):
+            return default
     
     def get_system_prompt(self) -> str:
         """Специализированный системный промпт для Chief SEO Strategist"""
@@ -427,7 +434,7 @@ Competition Level: {input_data.get('competition_level', 'Unknown')}
             'executive_action_plan': executive_action_plan,
             'investment_requirement': growth_projections.get('required_investment', 0),
             'strategic_impact': self._determine_seo_strategic_impact(strategic_assessment),
-            'requires_board_presentation': safe_numeric(growth_projections.get('projected_annual_roi', 0)) > 10.0,
+            'requires_board_presentation': self.safe_numeric(growth_projections.get('projected_annual_roi', 0)) > 10.0,
             'confidence_score': self._calculate_strategic_confidence(strategic_assessment, industry_analysis)
         }
 
@@ -435,37 +442,31 @@ Competition Level: {input_data.get('competition_level', 'Unknown')}
         """
         Оценка стратегической SEO позиции компании
         """
-        # Безопасное преобразование в числа
-        def safe_numeric(value, default=0):
-            try:
-                return float(value) if value else default
-            except (ValueError, TypeError):
-                return default
 
-        current_organic_traffic = safe_numeric(company_data.get('monthly_organic_traffic', 0))
-        current_keywords = safe_numeric(company_data.get('ranking_keywords_count', 0))
-        domain_authority = safe_numeric(company_data.get('domain_authority', 0))
-        current_seo_spend = safe_numeric(company_data.get('current_seo_spend', 0))
+        current_organic_traffic = self.safe_numeric(company_data.get('monthly_organic_traffic', 0))
+        current_keywords = self.safe_numeric(company_data.get('ranking_keywords_count', 0))
+        domain_authority = self.safe_numeric(company_data.get('domain_authority', 0))
+        current_seo_spend = self.safe_numeric(company_data.get('current_seo_spend', 0))
 
         # Strategic Position Score (0-100)
         position_score = 0
 
         # Traffic Assessment (35% веса)
-        traffic_threshold = safe_numeric(self.strategic_seo_thresholds['monthly_traffic_threshold'])
+        traffic_threshold = self.safe_numeric(self.strategic_seo_thresholds['monthly_traffic_threshold'])
         if current_organic_traffic >= traffic_threshold:
             position_score += 35
         else:
             position_score += (current_organic_traffic / traffic_threshold) * 35 if traffic_threshold > 0 else 0
 
         # Keywords Portfolio Assessment (25% веса)
-        keywords_threshold = safe_numeric(self.strategic_seo_thresholds['enterprise_keywords_min'])
+        keywords_threshold = self.safe_numeric(self.strategic_seo_thresholds['enterprise_keywords_min'])
         if current_keywords >= keywords_threshold:
             position_score += 25
         else:
             position_score += (current_keywords / keywords_threshold) * 25 if keywords_threshold > 0 else 0
 
         # Authority Assessment (20% веса)
-        authority_threshold = safe_numeric(self.strategic_seo_thresholds['domain_authority_min'])
+        authority_threshold = self.safe_numeric(self.strategic_seo_thresholds['domain_authority_min'])
         if domain_authority >= authority_threshold:
             position_score += 20
         else:
@@ -473,7 +474,7 @@ Competition Level: {input_data.get('competition_level', 'Unknown')}
 
         # Investment Maturity (20% веса)
         annual_seo_investment = current_seo_spend * 12
-        annual_revenue = safe_numeric(company_data.get('annual_revenue', 1))
+        annual_revenue = self.safe_numeric(company_data.get('annual_revenue', 1))
         seo_investment_ratio = annual_seo_investment / annual_revenue
         if seo_investment_ratio >= 0.05:  # 5%+ от выручки на SEO
             position_score += 20
@@ -548,8 +549,8 @@ Competition Level: {input_data.get('competition_level', 'Unknown')}
         Маппинг конкурентного SEO ландшафта
         """
         competitors = company_data.get('main_competitors', [])
-        current_traffic = safe_numeric(company_data.get('monthly_organic_traffic', 0))
-        current_keywords = safe_numeric(company_data.get('ranking_keywords_count', 0))
+        current_traffic = self.safe_numeric(company_data.get('monthly_organic_traffic', 0))
+        current_keywords = self.safe_numeric(company_data.get('ranking_keywords_count', 0))
 
         # Оценка конкурентной позиции
         competitor_analysis = []
@@ -637,16 +638,10 @@ Competition Level: {input_data.get('competition_level', 'Unknown')}
         """
         Расчет прогнозов роста SEO с учетом стратегических инвестиций
         """
-        # Безопасное преобразование в числа
-        def safe_numeric(value, default=0):
-            try:
-                return float(value) if value else default
-            except (ValueError, TypeError):
-                return default
         
-        current_traffic = safe_numeric(company_data.get('monthly_organic_traffic', 0))
-        current_revenue = safe_numeric(company_data.get('annual_revenue', 0))
-        current_seo_spend = safe_numeric(company_data.get('current_seo_spend', 0)) * 12  # Годовой бюджет
+        current_traffic = self.safe_numeric(company_data.get('monthly_organic_traffic', 0))
+        current_revenue = self.safe_numeric(company_data.get('annual_revenue', 0))
+        current_seo_spend = self.safe_numeric(company_data.get('current_seo_spend', 0)) * 12  # Годовой бюджет
         
         # Базовые множители роста по годам
         year_multipliers = {
@@ -827,9 +822,9 @@ Competition Level: {input_data.get('competition_level', 'Unknown')}
     # Вспомогательные методы
     def _calculate_organic_visibility_index(self, company_data: Dict) -> float:
         """Расчет индекса органической видимости"""
-        traffic = safe_numeric(company_data.get('monthly_organic_traffic', 0))
-        keywords = safe_numeric(company_data.get('ranking_keywords_count', 0))
-        authority = safe_numeric(company_data.get('domain_authority', 0))
+        traffic = self.safe_numeric(company_data.get('monthly_organic_traffic', 0))
+        keywords = self.safe_numeric(company_data.get('ranking_keywords_count', 0))
+        authority = self.safe_numeric(company_data.get('domain_authority', 0))
         
         # Нормализованный индекс (0-100)
         visibility_index = (traffic / 100000 * 0.4 + keywords / 10000 * 0.3 + authority * 0.3)
@@ -859,8 +854,8 @@ Competition Level: {input_data.get('competition_level', 'Unknown')}
 
     def _assess_google_algorithm_readiness(self, company_data: Dict) -> str:
         """Оценка готовности к алгоритмам Google"""
-        technical_score = safe_numeric(company_data.get('technical_seo_score', 0))
-        content_quality = safe_numeric(company_data.get('content_quality_score', 0))
+        technical_score = self.safe_numeric(company_data.get('technical_seo_score', 0))
+        content_quality = self.safe_numeric(company_data.get('content_quality_score', 0))
         
         avg_score = (technical_score + content_quality) / 2
         
@@ -875,8 +870,8 @@ Competition Level: {input_data.get('competition_level', 'Unknown')}
 
     def _assess_yandex_algorithm_readiness(self, company_data: Dict) -> str:
         """Оценка готовности к алгоритмам Яндекс"""
-        behavioral_signals = safe_numeric(company_data.get('behavioral_signals_score', 0))
-        regional_relevance = safe_numeric(company_data.get('regional_relevance_score', 0))
+        behavioral_signals = self.safe_numeric(company_data.get('behavioral_signals_score', 0))
+        regional_relevance = self.safe_numeric(company_data.get('regional_relevance_score', 0))
         
         avg_score = (behavioral_signals + regional_relevance) / 2
         
@@ -916,13 +911,13 @@ Competition Level: {input_data.get('competition_level', 'Unknown')}
         """Идентификация рисков изменения алгоритмов"""
         risks = []
         
-        if safe_numeric(company_data.get('content_ai_generated_percent', 0)) > 0.5:
+        if self.safe_numeric(company_data.get('content_ai_generated_percent', 0)) > 0.5:
             risks.append('Высокий процент AI-генерированного контента может пострадать от обновлений')
             
-        if safe_numeric(company_data.get('technical_seo_score', 0)) < 70:
+        if self.safe_numeric(company_data.get('technical_seo_score', 0)) < 70:
             risks.append('Низкие технические показатели уязвимы к Core Web Vitals обновлениям')
             
-        if safe_numeric(company_data.get('backlink_quality_score', 0)) < 60:
+        if self.safe_numeric(company_data.get('backlink_quality_score', 0)) < 60:
             risks.append('Низкое качество ссылочного профиля при ужесточении фильтров')
             
         return risks

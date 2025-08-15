@@ -101,6 +101,13 @@ class BusinessDevelopmentDirectorAgent(BaseAgent):
         print(f"  🏢 Industry Expertise: {len(self.industry_expertise)} verticals")
         print(f"  📊 Target ARR Growth: {self.kpi_targets['arr_growth']*100}%")
 
+    def safe_numeric(self, value, default=0):
+        """Безопасное преобразование значения в число"""
+        try:
+            return float(value) if value else default
+        except (ValueError, TypeError):
+            return default
+
     def get_system_prompt(self) -> str:
         """Специализированный системный промпт для Business Development Director"""
         return f"""Ты - Executive Business Development Director в SEO-агентстве высшего уровня, специалист по enterprise-сделкам 2.5M+ ₽ MRR.
@@ -239,7 +246,7 @@ EXECUTIVE DECISION CRITERIA:
                 'result': result,
                 'executive_level': True,
                 'strategic_impact': result.get('strategic_impact', 'medium'),
-                'requires_ceo_approval': safe_numeric(result.get('deal_size', 0)) > self.executive_approval_threshold,
+                'requires_ceo_approval': self.safe_numeric(result.get('deal_size', 0)) > self.executive_approval_threshold,
                 'success': True,
                 'model_used': llm_result.get('model_used') if llm_result["success"] else None,
                 'tokens_used': llm_result.get('tokens_used') if llm_result["success"] else None
@@ -353,7 +360,7 @@ EXECUTIVE DECISION CRITERIA:
             result["enterprise_assessment"] = {}
             
         # Определяем требуется ли одобрение CEO
-        deal_size = safe_numeric(result.get("deal_size", 0))
+        deal_size = self.safe_numeric(result.get("deal_size", 0))
         result["requires_ceo_approval"] = deal_size > self.executive_approval_threshold
         
         # Добавляем industry expertise context
@@ -440,7 +447,7 @@ EXECUTIVE DECISION CRITERIA:
             'executive_action_plan': action_plan,
             'deal_size': revenue_analysis.get('projected_annual_value', 0),
             'strategic_impact': self._determine_strategic_impact(enterprise_score, strategic_value),
-            'executive_approval_required': safe_numeric(revenue_analysis.get('projected_annual_value', 0)) > self.executive_approval_threshold,
+            'executive_approval_required': self.safe_numeric(revenue_analysis.get('projected_annual_value', 0)) > self.executive_approval_threshold,
             'confidence_score': self._calculate_confidence_score(enterprise_score, strategic_value)
         }
 
@@ -449,16 +456,10 @@ EXECUTIVE DECISION CRITERIA:
         """
         Оценка потенциала партнерства
         """
-        # Безопасная конвертация числовых значений
-        def safe_numeric(value, default=0):
-            try:
-                return float(value) if value else default
-            except (ValueError, TypeError):
-                return default
         
         tech_stack = company_data.get('tech_stack', [])
         existing_partnerships = company_data.get('existing_partnerships', [])
-        annual_revenue = safe_numeric(company_data.get('annual_revenue', 0))
+        annual_revenue = self.safe_numeric(company_data.get('annual_revenue', 0))
         industry = company_data.get('industry', '').lower()
 
         # Базовая оценка потенциала
@@ -514,17 +515,11 @@ EXECUTIVE DECISION CRITERIA:
         """
         Расчет Enterprise score с executive-level критериями  
         """
-        # Безопасная конвертация числовых значений
-        def safe_numeric(value, default=0):
-            try:
-                return float(value) if value else default
-            except (ValueError, TypeError):
-                return default
         
         score = 0
 
         # 1. Deal Size Assessment (30% веса)
-        annual_revenue = safe_numeric(company_data.get('annual_revenue', 0))
+        annual_revenue = self.safe_numeric(company_data.get('annual_revenue', 0))
         if annual_revenue >= 1000000000:  # ₽1B+ revenue
             score += 30
         elif annual_revenue >= 500000000:  # ₽500M+ revenue
@@ -551,7 +546,7 @@ EXECUTIVE DECISION CRITERIA:
         score += brand_score
 
         # 3. Growth Potential (15% веса)
-        growth_rate = safe_numeric(company_data.get('revenue_growth_rate', 0))
+        growth_rate = self.safe_numeric(company_data.get('revenue_growth_rate', 0))
         if growth_rate >= 0.5:
             score += 15
         elif growth_rate >= 0.3:
@@ -567,21 +562,15 @@ EXECUTIVE DECISION CRITERIA:
         score += min(tech_stack * 2 + partnerships * 1.5, 15)
 
         # 5. Market Position (15% веса)
-        market_share = safe_numeric(company_data.get('market_share_percent', 0))
+        market_share = self.safe_numeric(company_data.get('market_share_percent', 0))
         score += min(market_share, 15)
 
         return min(int(score), 100)
 
     def _classify_deal_tier(self, enterprise_score: int, company_data: Dict) -> str:
         """Классификация уровня сделки"""
-        # Безопасная конвертация числовых значений
-        def safe_numeric(value, default=0):
-            try:
-                return float(value) if value else default
-            except (ValueError, TypeError):
-                return default
         
-        annual_revenue = safe_numeric(company_data.get('annual_revenue', 0))
+        annual_revenue = self.safe_numeric(company_data.get('annual_revenue', 0))
 
         if enterprise_score >= 90 and annual_revenue >= 1000000000:
             return 'tier_1_enterprise'  # 10M ₽+ MRR potential
@@ -597,7 +586,7 @@ EXECUTIVE DECISION CRITERIA:
     def _assess_strategic_value(self, company_data: Dict) -> Dict[str, Any]:
         """Оценка стратегической ценности"""
         brand_score = self._calculate_brand_value(company_data)
-        market_influence = safe_numeric(company_data.get('market_share_percent', 0)) * 2
+        market_influence = self.safe_numeric(company_data.get('market_share_percent', 0)) * 2
         reference_potential = 50 if company_data.get('case_study_willingness', False) else 20
 
         return {
@@ -618,11 +607,11 @@ EXECUTIVE DECISION CRITERIA:
         }.get(brand_recognition, 0)
 
         # Media presence
-        media_mentions = safe_numeric(company_data.get('annual_media_mentions', 0))
+        media_mentions = self.safe_numeric(company_data.get('annual_media_mentions', 0))
         score += min(media_mentions / 100 * 20, 20)
 
         # Social influence  
-        social_followers = safe_numeric(company_data.get('social_media_followers', 0))
+        social_followers = self.safe_numeric(company_data.get('social_media_followers', 0))
         score += min(social_followers / 100000 * 15, 15)
 
         # Awards
@@ -633,7 +622,7 @@ EXECUTIVE DECISION CRITERIA:
 
     def _analyze_competitive_position(self, company_data: Dict) -> Dict[str, Any]:
         """Анализ конкурентной позиции"""
-        market_share = safe_numeric(company_data.get('market_share_percent', 0))
+        market_share = self.safe_numeric(company_data.get('market_share_percent', 0))
         
         if market_share >= 25:
             competitive_strength = 'market_leader'
@@ -649,7 +638,7 @@ EXECUTIVE DECISION CRITERIA:
             'market_share_percent': market_share,
             'competitor_count': len(company_data.get('main_competitors', [])),
             'technology_advantages': company_data.get('technology_advantages', []),
-            'patent_portfolio': safe_numeric(company_data.get('patent_count', 0))
+            'patent_portfolio': self.safe_numeric(company_data.get('patent_count', 0))
         }
 
     def _analyze_revenue_potential(self, company_data: Dict, proposal_data: Dict) -> Dict[str, Any]:
@@ -657,7 +646,7 @@ EXECUTIVE DECISION CRITERIA:
         base_annual_value = proposal_data.get('total_annual_investment', 0)
         
         # Enterprise multipliers
-        employee_count = safe_numeric(company_data.get('employee_count', 0))
+        employee_count = self.safe_numeric(company_data.get('employee_count', 0))
         if employee_count >= 10000:
             multiplier = 2.5
         elif employee_count >= 1000:
@@ -668,7 +657,7 @@ EXECUTIVE DECISION CRITERIA:
             multiplier = 1.2
 
         projected_year_1 = base_annual_value * multiplier
-        growth_rate = safe_numeric(company_data.get('revenue_growth_rate', 0.2))
+        growth_rate = self.safe_numeric(company_data.get('revenue_growth_rate', 0.2))
         projected_year_2 = projected_year_1 * (1 + growth_rate)
         projected_year_3 = projected_year_2 * (1 + growth_rate * 0.8)
 
@@ -788,7 +777,7 @@ EXECUTIVE DECISION CRITERIA:
         else:
             company_data = data
         current_industry = company_data.get("industry", "unknown")
-        annual_revenue = safe_numeric(company_data.get("annual_revenue", 0))
+        annual_revenue = self.safe_numeric(company_data.get("annual_revenue", 0))
         
         # Российские рынки для экспансии
         russian_markets = {
