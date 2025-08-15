@@ -788,7 +788,7 @@ EXECUTIVE DECISION CRITERIA:
         else:
             company_data = data
         current_industry = company_data.get("industry", "unknown")
-        annual_revenue = company_data.get("annual_revenue", 0)
+        annual_revenue = safe_numeric(company_data.get("annual_revenue", 0))
         
         # Российские рынки для экспансии
         russian_markets = {
