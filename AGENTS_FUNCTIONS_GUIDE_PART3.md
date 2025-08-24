@@ -23,74 +23,74 @@
     - Средний сайт (1000-10000 страниц): Базовая цена × 1.0
     - Сложный сайт (10000-100000 страниц): Базовая цена × 2.0
     - Корпоративный сайт (100000+ страниц): Базовая цена × 3.0-5.0
-  - **Competition Factor (20% влияния на цену):**
-    - No current SEO: Base price × 1.2 (premium for greenfield)
-    - Underperforming agency: Base price × 1.0 (standard rate)
-    - Strong competitor: Base price × 0.8 (competitive pricing)
-    - In-house team: Base price × 0.9 (value positioning)
-  - **Urgency Factor (15% влияния на цену):**
-    - Standard timeline: Base price × 1.0
-    - Expedited (rush): Base price × 1.3
-    - Emergency project: Base price × 1.5-2.0
-  - **Relationship Factor (10% влияния на цену):**
-    - New client: Base price × 1.0
-    - Referral: Base price × 0.95
-    - Existing client expansion: Base price × 0.9
-    - Strategic partnership: Base price × 0.85
+  - **Competition Factor (фактор конкуренции) (20% влияния на цену):**
+    - No current SEO (отсутствие текущей поисковой оптимизации): Base price (базовая цена) × 1.2 (premium for greenfield (премиум за новый проект))
+    - Underperforming agency (неэффективное агентство): Base price (базовая цена) × 1.0 (standard rate (стандартная ставка))
+    - Strong competitor (сильный конкурент): Base price (базовая цена) × 0.8 (competitive pricing (конкурентное ценообразование))
+    - In-house team (внутренняя команда): Base price (базовая цена) × 0.9 (value positioning (ценовое позиционирование))
+  - **Urgency Factor (фактор срочности) (15% влияния на цену):**
+    - Standard timeline (стандартные сроки): Base price (базовая цена) × 1.0
+    - Expedited (rush) (ускоренно (срочно)): Base price (базовая цена) × 1.3
+    - Emergency project (экстренный проект): Base price (базовая цена) × 1.5-2.0
+  - **Relationship Factor (фактор отношений) (10% влияния на цену):**
+    - New client (новый клиент): Base price (базовая цена) × 1.0
+    - Referral (рекомендация): Base price (базовая цена) × 0.95
+    - Existing client expansion (расширение существующего клиента): Base price (базовая цена) × 0.9
+    - Strategic partnership (стратегическое партнерство): Base price (базовая цена) × 0.85
 
 **`calculate_roi_projections()`** - Расчет прогнозов ROI
-- **Traffic Projection Methodology:**
-  - **Baseline Traffic Analysis:** Current organic traffic levels
-  - **Keyword Opportunity Assessment:** Potential traffic from target keywords
-  - **Competition Analysis:** Market share potential based on competitors
-  - **Seasonality Factors:** Seasonal traffic variations and adjustments
-  - **Growth Timeline:** Month-by-month traffic growth projections
-- **Conversion Rate Optimization Factors:**
-  - **Current Conversion Baseline:** Existing organic traffic conversion rates
-  - **Industry Benchmarks:** Typical conversion rates for the industry
-  - **Technical Improvements:** Expected conversion lift from technical SEO
-  - **Content Quality Improvements:** Conversion impact of better content
-  - **User Experience Enhancements:** UX improvements affecting conversions
-- **Revenue Calculation Framework:**
+- **Traffic Projection Methodology (методология прогнозирования трафика):**
+  - **Baseline Traffic Analysis (анализ базового трафика):** Current organic traffic levels (текущие уровни органического трафика)
+  - **Keyword Opportunity Assessment (оценка возможностей ключевых слов):** Potential traffic from target keywords (потенциальный трафик от целевых ключевых слов)
+  - **Competition Analysis (конкурентный анализ):** Market share potential based on competitors (потенциал рыночной доли на основе конкурентов)
+  - **Seasonality Factors (сезонные факторы):** Seasonal traffic variations and adjustments (сезонные колебания трафика и корректировки)
+  - **Growth Timeline (временная линия роста):** Month-by-month traffic growth projections (помесячные прогнозы роста трафика)
+- **Conversion Rate Optimization Factors (факторы оптимизации коэффициента конверсии):**
+  - **Current Conversion Baseline (текущий базовый уровень конверсии):** Existing organic traffic conversion rates (существующие коэффициенты конверсии органического трафика)
+  - **Industry Benchmarks (отраслевые бенчмарки):** Typical conversion rates for the industry (типичные коэффициенты конверсии для отрасли)
+  - **Technical Improvements (технические улучшения):** Expected conversion lift from technical SEO (ожидаемый рост конверсии от технической поисковой оптимизации)
+  - **Content Quality Improvements (улучшения качества контента):** Conversion impact of better content (влияние лучшего контента на конверсию)
+  - **User Experience Enhancements (улучшения пользовательского опыта):** UX improvements affecting conversions (улучшения пользовательского опыта, влияющие на конверсии)
+- **Revenue Calculation Framework (фреймворк расчета доходов):**
   ```
-  Projected Monthly Revenue = 
-  (Projected Monthly Traffic × Conversion Rate × Average Order Value) - 
-  (Current Monthly Traffic × Current Conversion Rate × Current AOV)
+  Projected Monthly Revenue (прогнозируемый месячный доход) = 
+  (Projected Monthly Traffic (прогнозируемый месячный трафик) × Conversion Rate (коэффициент конверсии) × Average Order Value (средняя стоимость заказа)) - 
+  (Current Monthly Traffic (текущий месячный трафик) × Current Conversion Rate (текущий коэффициент конверсии) × Current AOV (текущая средняя стоимость заказа))
   
-  ROI = (Additional Annual Revenue - Annual SEO Investment) / Annual SEO Investment × 100%
+  ROI (рентабельность инвестиций) = (Additional Annual Revenue (дополнительный годовой доход) - Annual SEO Investment (годовые инвестиции в поисковую оптимизацию)) / Annual SEO Investment (годовые инвестиции в поисковую оптимизацию) × 100%
   ```
-- **Conservative vs Optimistic Scenarios:**
-  - **Conservative (80% probability):** 50-100% traffic increase over 12 months
-  - **Realistic (60% probability):** 100-200% traffic increase over 12 months
-  - **Optimistic (30% probability):** 200-400% traffic increase over 12 months
+- **Conservative vs Optimistic Scenarios (консервативные против оптимистичных сценариев):**
+  - **Conservative (консервативный) (80% probability (вероятность)):** 50-100% traffic increase (увеличение трафика) over 12 months (за 12 месяцев)
+  - **Realistic (реалистичный) (60% probability (вероятность)):** 100-200% traffic increase (увеличение трафика) over 12 months (за 12 месяцев)
+  - **Optimistic (оптимистичный) (30% probability (вероятность)):** 200-400% traffic increase (увеличение трафика) over 12 months (за 12 месяцев)
 
 **`generate_custom_proposals()`** - Генерация кастомных предложений
-- **Proposal Structure Template:**
-  - **Executive Summary (10% документа):**
-    - Client situation analysis
-    - Proposed solution overview
-    - Expected outcomes and ROI
-    - Investment summary
-  - **Situation Analysis (15% документа):**
-    - Current SEO performance audit
-    - Competitive landscape assessment
-    - Market opportunity identification
-    - Gap analysis and priorities
-  - **Proposed Solution (40% документа):**
-    - Service scope and deliverables
-    - Implementation methodology
-    - Timeline and milestones
-    - Team structure and responsibilities
-  - **Expected Outcomes (20% документа):**
-    - Traffic and ranking projections
-    - Business impact forecasts
-    - ROI calculations and scenarios
-    - Success metrics and KPIs
-  - **Investment and Terms (15% документа):**
-    - Pricing structure and justification
-    - Payment terms and schedules
-    - Contract terms and conditions
-    - Next steps and decision timeline
+- **Proposal Structure Template (шаблон структуры предложения):**
+  - **Executive Summary (исполнительное резюме) (10% документа):**
+    - Client situation analysis (анализ ситуации клиента)
+    - Proposed solution overview (обзор предлагаемого решения)
+    - Expected outcomes and ROI (ожидаемые результаты и рентабельность инвестиций)
+    - Investment summary (резюме инвестиций)
+  - **Situation Analysis (анализ ситуации) (15% документа):**
+    - Current SEO performance audit (аудит текущей производительности поисковой оптимизации)
+    - Competitive landscape assessment (оценка конкурентного ландшафта)
+    - Market opportunity identification (выявление рыночных возможностей)
+    - Gap analysis and priorities (анализ пробелов и приоритеты)
+  - **Proposed Solution (предлагаемое решение) (40% документа):**
+    - Service scope and deliverables (объем услуг и результаты)
+    - Implementation methodology (методология внедрения)
+    - Timeline and milestones (временные рамки и вехи)
+    - Team structure and responsibilities (структура команды и обязанности)
+  - **Expected Outcomes (ожидаемые результаты) (20% документа):**
+    - Traffic and ranking projections (прогнозы трафика и позиций)
+    - Business impact forecasts (прогнозы влияния на бизнес)
+    - ROI calculations and scenarios (расчеты рентабельности инвестиций и сценарии)
+    - Success metrics and KPIs (метрики успеха и ключевые показатели эффективности)
+  - **Investment and Terms (инвестиции и условия) (15% документа):**
+    - Pricing structure and justification (структура цен и обоснование)
+    - Payment terms and schedules (условия оплаты и графики)
+    - Contract terms and conditions (условия и положения контракта)
+    - Next steps and decision timeline (следующие шаги и временные рамки принятия решений)
 
 #### **Российские ценовые модели:**
 
@@ -110,16 +110,16 @@
   - Mid-market: 500,000-1,500,000 ₽/месяц
   - Enterprise: 1,500,000-5,000,000 ₽/месяц
 - **Включенные услуги:** Определенный объем работ в месяц
-- **Overage policy:** Дополнительные работы сверх ретейнера
+- **Overage policy (политика превышения):** Дополнительные работы сверх ретейнера
 
 **Модель оплаты по результату:**
 - **Базовая модель:** Небольшая фиксированная часть + бонус за KPI
 - **KPI варианты:**
-  - Traffic growth: Бонус за каждые 10% роста трафика
-  - Ranking improvements: Оплата за достижение топ-3 позиций
-  - Revenue attribution: % от дополнительного дохода через SEO
+  - Traffic growth (рост трафика): Бонус за каждые 10% роста трафика
+  - Ranking improvements (улучшения позиций): Оплата за достижение топ-3 позиций
+  - Revenue attribution (атрибуция доходов): % от дополнительного дохода через SEO
 - **Валютные ограничения:** Соблюдение российского валютного законодательства
-- **Риск-шеринг:** Клиент и исполнитель делят риски и выгоды
+- **Risk-sharing (риск-шеринг):** Клиент и исполнитель делят риски и выгоды
 
 **Гибридная модель:**
 - **Структура:** Фикс (60-70%) + переменная часть (30-40%)
@@ -173,48 +173,48 @@
   - **Обработка параметров:** Параметры ГЕТ, идентификаторы сессий, коды отслеживания
   - **Реализация канонических адресов:** Правильная настройка канонических тегов
   - **Логика иерархии адресов:** Логическая структура вложенности страниц
-- **Site Navigation Assessment:**
-  - **Main Navigation Structure:** Горизонтальное меню и его логика
-  - **Breadcrumb Implementation:** Хлебные крошки и schema markup
-  - **Footer Navigation:** Дополнительные навигационные элементы
-  - **Sidebar Navigation:** Боковые меню и их SEO влияние
-  - **Search Functionality:** Внутренний поиск и его оптимизация
-- **Internal Linking Analysis:**
-  - **Link Distribution:** Распределение внутренних ссылок по сайту
-  - **Anchor Text Optimization:** Анкорные тексты внутренних ссылок
-  - **Link Depth Analysis:** Глубина вложенности страниц от главной
-  - **Orphaned Pages Detection:** Страницы без входящих внутренних ссылок
-  - **Link Equity Flow:** Передача ссылочного веса по сайту
+- **Site Navigation Assessment (оценка навигации сайта):**
+  - **Main Navigation Structure (структура основной навигации):** Горизонтальное меню и его логика
+  - **Breadcrumb Implementation (реализация хлебных крошек):** Хлебные крошки и schema markup (схемная разметка)
+  - **Footer Navigation (навигация в подвале):** Дополнительные навигационные элементы
+  - **Sidebar Navigation (боковая навигация):** Боковые меню и их SEO влияние
+  - **Search Functionality (функциональность поиска):** Внутренний поиск и его оптимизация
+- **Internal Linking Analysis (анализ внутренних ссылок):**
+  - **Link Distribution (распределение ссылок):** Распределение внутренних ссылок по сайту
+  - **Anchor Text Optimization (оптимизация анкорных текстов):** Анкорные тексты внутренних ссылок
+  - **Link Depth Analysis (анализ глубины ссылок):** Глубина вложенности страниц от главной
+  - **Orphaned Pages Detection (обнаружение сиротских страниц):** Страницы без входящих внутренних ссылок
+  - **Link Equity Flow (поток ссылочного веса):** Передача ссылочного веса по сайту
 
 **`audit_core_web_vitals()`** - Аудит Core Web Vitals
-- **Largest Contentful Paint (LCP) Analysis:**
-  - **LCP Element Identification:** Определение элемента LCP на страницах
-  - **Resource Loading Optimization:**
-    - Critical resource prioritization
-    - Preload directives for key resources
-    - Image optimization and WebP implementation
-    - Font loading optimization
-  - **Server Response Time Optimization:**
-    - TTFB (Time to First Byte) measurement
-    - Server-side caching implementation
-    - Database query optimization
-    - CDN configuration for Russian market
-  - **LCP Improvement Strategies:**
-    - Above-the-fold content prioritization
-    - Hero image optimization
-    - Critical CSS inlining
-    - JavaScript execution optimization
-- **First Input Delay / Interaction to Next Paint (FID/INP) Analysis:**
-  - **JavaScript Execution Optimization:**
-    - Main thread blocking time reduction
-    - Long task identification and splitting
-    - Third-party script optimization
-    - Code splitting and lazy loading
-  - **Event Handler Optimization:**
-    - Input responsiveness improvement
-    - Event delegation patterns
-    - Passive event listeners
-    - Touch interaction optimization
+- **Largest Contentful Paint (LCP) Analysis (анализ наибольшей отрисовки контента):**
+  - **LCP Element Identification (идентификация элемента LCP):** Определение элемента LCP на страницах
+  - **Resource Loading Optimization (оптимизация загрузки ресурсов):**
+    - Critical resource prioritization (приоритизация критических ресурсов)
+    - Preload directives for key resources (директивы предзагрузки для ключевых ресурсов)
+    - Image optimization and WebP implementation (оптимизация изображений и внедрение WebP)
+    - Font loading optimization (оптимизация загрузки шрифтов)
+  - **Server Response Time Optimization (оптимизация времени отклика сервера):**
+    - TTFB (Time to First Byte) measurement (измерение времени до первого байта)
+    - Server-side caching implementation (реализация серверного кэширования)
+    - Database query optimization (оптимизация запросов базы данных)
+    - CDN configuration for Russian market (настройка CDN для российского рынка)
+  - **LCP Improvement Strategies (стратегии улучшения LCP):**
+    - Above-the-fold content prioritization (приоритизация контента в видимой области)
+    - Hero image optimization (оптимизация главного изображения)
+    - Critical CSS inlining (встраивание критического CSS)
+    - JavaScript execution optimization (оптимизация выполнения JavaScript)
+- **First Input Delay / Interaction to Next Paint (FID/INP) Analysis (анализ задержки первого ввода / взаимодействия до следующей отрисовки):**
+  - **JavaScript Execution Optimization (оптимизация выполнения JavaScript):**
+    - Main thread blocking time reduction (сокращение времени блокировки основного потока)
+    - Long task identification and splitting (идентификация и разбиение долгих задач)
+    - Third-party script optimization (оптимизация сторонних скриптов)
+    - Code splitting and lazy loading (разбиение кода и ленивая загрузка)
+  - **Event Handler Optimization (оптимизация обработчиков событий):**
+    - Input responsiveness improvement (улучшение отзывчивости ввода)
+    - Event delegation patterns (шаблоны делегирования событий)
+    - Passive event listeners (пассивные обработчики событий)
+    - Touch interaction optimization (оптимизация сенсорного взаимодействия)
 - **Cumulative Layout Shift (CLS) Analysis:**
   - **Layout Stability Assessment:**
     - Image dimension specification
